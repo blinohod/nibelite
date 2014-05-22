@@ -1,0 +1,2 @@
+#!/bin/sh -ef
+/bin/tail -f /var/lib/kannel/cdr/sms-cdr.log | /usr/bin/ccze

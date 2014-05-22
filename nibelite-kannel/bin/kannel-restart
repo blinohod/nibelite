@@ -1,0 +1,7 @@
+#!/bin/sh -ef
+
+/sbin/service kannel.smsbox stop
+/sbin/service kannel.bearerbox restart
+sleep 1
+/sbin/service kannel.smsbox start
+

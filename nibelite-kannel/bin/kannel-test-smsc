@@ -1,0 +1,263 @@
+#!/bin/sh
+
+D=`mktemp /tmp/d.XXXXXX`
+R=`mktemp /tmp/r.XXXXXX`
+
+trap 'rm -f $R $D' 0 1 2 13 15
+
+TITLE="Kannel test center"
+
+confdir="/etc/kannel/smsc.enabled"
+SMSC=""
+FROM="8886"
+AFROM="Nibelite"
+TO="380503279191"
+TXT="Text for simple test from Nibelite SMS platform not set"
+last_state="unknown"
+mode="single"
+SENDSMS=""
+URL=""
+hint=""
+URL1=""
+FR=""
+prescription=""
+
+# Test strings
+SM_GSM_SINGLE="Single+SMS+in+GSM+coding"
+SM_GSM_SINGLE_AT="Single+SM+GSM+mail@addre.ss"
+SM_GSM_SINGLE_SPEC="Single+SM+GSM+special:~:[:{:"
+SM_GSM_LONG="START-Long+SM+GSM+text+message+Long+SM+GSM+text+message+Long+SM+GSM+text+message+Long+SM+GSM+text+message+Long+SM+GSM+text+message+Long+SM+GSM+text+message+Long+SM+GSM+text+message+Long+SM+GSM+text+message+Long+SM+GSM+text+message+END"
+SM_UCS_SINGLE="Проверка+UCS2"
+SM_UCS_LONG="START:Проверка+UCS2+Проверка+UCS2+Проверка+UCS2+Проверка+UCS2+Проверка+UCS2+Проверка+UCS2+Проверка+UCS2+Проверка+UCS2+END"
+
+
+#
+select_confdir(){
+    exec 3>&1
+    confdir=`dialog --title "Please choose a directory containing the configuration of SMSC" "$@" \
+	--backtitle "$TITLE" --dselect /etc/kannel/ 10 80 2>&1 1>&3` 
+    exec 3>&-
+}
+select_smsc(){
+    [ -d "$confdir" ] || select_confdir
+    exec 3>&1
+    st="on"
+    echo " --clear --backtitle \"$TITLE\"" > $D
+    echo ' --title "Known SMSC" \' >> $D
+    echo ' --ok-label "Next. Set numbers" \' >> $D
+    echo ' --cancel-label "Exit" \' >> $D
+    echo " --radiolist \"Please, select SMSC for test $hint\" 15 80 10" >> $D
+
+    for config in $confdir/*.conf; do
+	echo "\"$(grep ^smsc-id $config | cut -d' ' -f3)\" \"\" $st  \\" >>$D
+	st="off"
+    done
+    echo '' >>$D
+
+    SMSC=`dialog "$@"--file $D 2>&1 1>&3`
+    retcode=$?
+    exec 3>&-
+
+    if [ "$retcode" == "1" ];then
+    	exit 0
+    fi
+
+    hint="\n     You must to select one SMSC !!!"
+    [ "x$SMSC" == "x" ] && select_smsc
+
+    SENDSMS="http://127.0.0.1:13013/cgi-bin/sendsms?smsc=$SMSC&username=local&password=local&charset=utf-8"
+}
+
+get_phones(){
+    exec 3>&1
+    phones=`dialog --backtitle "$TITLE" \
+        --title "Numbers and name for testing SMSC \"$SMSC\"" --clear \
+        --ok-label "Next. Select mode" \
+        --cancel-label "Exit" \
+        --mixedform "Enter numbers and name" 15 80 10 \
+        "From (short) number         "   1 1 "$FROM"    1 35 15 0 0 \
+        "From (name)                 "   2 1 "$AFROM"    2 35 15 0 0 \
+        "To (long) number without \"+\""   3 1 "$TO"    3 35 15 0 0  2>&1 1>&3`
+
+        retcode=$?
+        exec 3>&-
+        if [ "$retcode" == "1" ];then
+    	    exit 0
+        fi
+    read_output `echo "$phones" | tr "\n" " "`
+}
+
+read_output()
+{
+    [ "x$1" == "x" -o "x$3" == "x" ] && get_phones
+    FROM="$1"; AFROM="$2"; TO="$3"
+}
+
+select_test(){
+    FR=${FROM}
+    exec 3>&1
+    s_test=`dialog  --clear --backtitle "$TITLE" \
+	--title "Select test" \
+	--extra-button --extra-label "All. Step by step" \
+	--ok-label "Run selected test" \
+	--cancel-label "Exit" \
+	--menu "Present 10 tests:" 15 80 10 \
+	"1 " "Single MT SM; coding=GSM" \
+	"2 " "Single MT SM; coding=UCS2" \
+	"3 " "Single MT SM; coding=GSM; symbol \"@\" included" \
+	"4 " "Single MT SM; coding=GSM; symbols \"~,[,{\" included " \
+	"5 " "Concatenated MT SM; coding=GSM" \
+	"6 " "Concatenated MT SM; coding=UCS2" \
+	"7 " "Single MT SM; coding=GSM; message_class=0 (Flash SMS)" \
+	"8 " "Single MT SM; coding=GSM; registered_delivery=1 (DLR test)" \
+	"9 " "Single MT SM; coding=GSM; Alphanumeric SRC" \
+	"10" "Single MT SM; coding=GSM; registered_delivery=1; validity_period=3min" \
+	2>&1 1>&3`
+
+    res=$?
+    exec 3>&-
+    if [ "$res" == 0 ];then
+	mode="single"
+	set_text "$s_test"
+    fi
+    if [ "$res" == "1" ];then
+	exit 0
+    fi
+
+    if [ "$res" == "3" ];then
+	mode="sbs"
+	s_b_s
+    fi
+    
+    URL="${SENDSMS}&from=${FR}&to=${TO}${URL1}"
+    run_test
+}
+
+set_text(){
+	FR=${FROM}
+	prescription=""
+	case $1 in
+	    1)	
+		URL1="&text=${SM_GSM_SINGLE}&coding=0"
+		TXT=${SM_GSM_SINGLE}
+		;;
+	    2)	
+		URL1="&text=${SM_UCS_SINGLE}&coding=2"
+		TXT=${SM_UCS_SINGLE}
+		;;
+	    3)	
+		URL1="&text=${SM_GSM_SINGLE_AT}&coding=0"
+		TXT=${SM_GSM_SINGLE_AT}
+		;;
+	    4)	
+		URL1="&text=${SM_GSM_SINGLE_SPEC}&coding=0"
+		TXT=${SM_GSM_SINGLE_SPEC}
+		;;
+	    5)	
+		URL1="&text=${SM_GSM_LONG}&coding=0"
+		TXT=${SM_GSM_LONG}
+		;;
+	    6)	
+		URL1="&text=${SM_UCS_LONG}&coding=2"
+		TXT=${SM_UCS_LONG}
+		;;
+	    7)	
+		URL1="&text=FLASH+${SM_GSM_SINGLE}&coding=0&mclass=0"
+		TXT="FLASH+${SM_GSM_SINGLE}"
+		;;
+	    8)	
+		URL1="&text=${SM_GSM_SINGLE}&coding=0&dlr-mask=3"
+		TXT=${SM_GSM_SINGLE}
+		;;
+	    9) 
+		URL1="&text=${SM_GSM_SINGLE}&coding=0"
+		TXT=${SM_GSM_SINGLE}
+		FR=${AFROM}
+		;;
+	    10)
+	    	URL1="&text=${SM_GSM_SINGLE}&coding=0"
+		TXT=${SM_GSM_SINGLE}
+		prescription="\n\nSwitch OFF phone for a 5 minutes to test validity_period"
+		;;
+	    *)	URL1="&text=${SM_GSM_SINGLE}&coding=0";;
+	esac
+
+}
+
+run_test(){
+    dialog --title "Ready for run test" \
+	--backtitle "$TITLE" --clear \
+        --ok-label "Send" \
+        --cancel-label "Exit" \
+        --extra-label "Select other" --extra-button \
+        --yesno "SMS from $FR to $TO with text:\n\n \
+        $TXT\n\nprepared for sending.${prescription}" 15 80
+
+        res=$?
+        case $res in
+    	    0) send_sms ;;
+    	    1) exit 0;;
+    	    3) select_test;;
+        esac
+}
+
+send_sms(){
+   [ -n "$SMSC" -a -n "$FROM" -a -n "$TO" ] && lynx -dump $URL
+    last_state=" with state \"$?\""
+    mb_end
+}
+
+mb_end(){
+    dialog --title "SMS sended" \
+	--backtitle "$TITLE" --clear \
+        --ok-label "Select single test" \
+        --extra-label "Continue..." --extra-button \
+        --cancel-label "Exit" \
+        --yesno "SMS from $FR to $TO with text:\n\n \
+        $TXT \n\nsended $last_state \n\nVisually inspect the phone, check text \nand fix the result in form.\n\n \
+        " 15 80
+        ret=$?
+
+        case $ret in
+    	    0)  mode="single"
+    		select_test ;; 
+    	    1) exit 0 ;;
+    	    3) [ "$mode" == "sbs" ] && return || select_test ;;
+        esac
+
+}
+
+s_b_s(){
+    dialog --title "Step by step mode" \
+	--backtitle "$TITLE" --clear \
+        --ok-label "Start testing" \
+        --cancel-label "Exit" \
+        --extra-label "Select single test" --extra-button \
+        --yesno "Now we will send a variety of tests on the previously specified number.\n\
+After each test, you will be prompted to continue or to terminate testing. \
+        " 15 80
+        
+        ret=$?
+        case $ret in
+        0) for i in 1 2 3 4 5 6 7 8 9;do
+    		set_text $i
+    		send_sms
+    	    done
+        ;;
+        1) exit 0
+        ;;
+        3) select_test
+        ;;
+        *) ;;
+        esac
+}
+#
+
+
+select_smsc
+get_phones
+select_test
+
+rm -r "$D" 
+rm -r "$R"
+

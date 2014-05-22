@@ -1,0 +1,231 @@
+#!/bin/sh
+
+D=`mktemp /tmp/d.XXXXXX`
+R=`mktemp /tmp/r.XXXXXX`
+
+trap 'rm -f $R $D' HUP INT QUIT PIPE TERM EXIT
+
+TITLE="Kannel configurator"
+
+enabled="/etc/kannel/smsc.enabled"
+prepared="/etc/kannel/smsc.d"
+mode="enabled"
+mode_label="prepared"
+conffile=""
+hint=""
+
+confvars="smscid systemtype throughput host port transceivermode altcharset smscusername smscpassword enquirelinkinterval logfile loglevel"
+#vars
+smscid=
+systemtype=
+throughput=
+host=
+port=
+transceivermode=
+altcharset= 
+smscusername=
+smscpassword=
+enquirelinkinterval=
+logfile=
+loglevel=
+enaconf=
+
+confdir=${enabled}
+
+#
+select_confdir(){
+    exec 3>&1
+    confdir=`dialog --title "Please choose a directory containing the configuration of SMSC" "$@" \
+	--backtitle "$TITLE" --dselect /etc/kannel/ 10 80 2>&1 1>&3` 
+    exec 3>&-
+}
+
+select_smsc(){
+    [ -d "$confdir" ] || select_confdir
+    exec 3>&1
+    st="on"
+    echo " --clear --backtitle \"$TITLE\"" > $D
+    echo " --title \"Found ${mode} SMSC\" \\" >> $D
+    echo ' --ok-label "Edit this" \' >> $D
+    echo ' --help-label "Create new" --help-button \' >> $D
+    echo " --extra-label \"Select ${mode_label}\" --extra-button \\ " >> $D
+    echo ' --cancel-label "Exit" \' >> $D
+    echo " --radiolist \"Please, select SMSC ${hint} \" 15 80 10" >> $D
+
+    for config in $confdir/*.conf; do
+	echo "\"$(grep ^"smsc-id" $config | cut -d' ' -f3)\" \"\" $st  \\"  >>$D
+	st="off"
+    done
+    echo '' >>$D
+
+    smscid=`dialog "$@"--file $D 2>&1 1>&3`
+    retcode=$?
+    exec 3>&-
+
+    if [ "$retcode" = "1" ];then
+	exit 0
+    fi
+
+    if [ "$retcode" = "2" ];then
+    	mode="new"
+	read_output
+	edit_smsc
+    fi
+
+    if [ "$retcode" = "3" ];then
+	if [ $mode = "enabled" -o $mode = "new" ];then
+    	    confdir=${prepared}
+	    mode="prepared"
+	    mode_label="enabled"
+	else
+	    confdir=${enabled}
+	    mode="enabled"
+	    mode_label="prepared"
+	fi
+    	select_smsc
+    fi
+
+    hint="\n     You must to select one SMSC !!!"
+    [ "x${smscid}" = "x" ] && select_smsc
+
+}
+
+read_config(){
+    conffile=$(grep -l ${smscid} ${confdir}/*.conf)
+    if [ -f $conffile ];then 
+	smscid=$(grep ^smsc-id $conffile | cut -d' ' -f3)
+	systemtype=$(grep ^system-type $conffile | cut -d' ' -f3)
+	throughput=$(grep ^throughput $conffile | cut -d' ' -f3)
+	host=$(grep ^host $conffile | cut -d' ' -f3)
+	port=$(grep ^port $conffile | cut -d' ' -f3)
+	transceivermode=$(grep ^transceiver-mode $conffile | cut -d' ' -f3)
+	altcharset=$(grep ^alt-charset $conffile | cut -d' ' -f3) 
+	smscusername=$(grep ^smsc-username $conffile | cut -d' ' -f3)
+	smscpassword=$(grep ^smsc-password $conffile | cut -d' ' -f3)
+	enquirelinkinterval=$(grep ^enquire-link-interval $conffile | cut -d' ' -f3)
+	loglevel=$(grep ^log-level $conffile | cut -d' ' -f3)
+    fi
+}
+
+edit_smsc(){
+    exec 3>&1
+    vars=`dialog --backtitle "$TITLE" \
+        --title "Configure for SMSC \"${smscid}\"" --clear \
+        --ok-label "Save" \
+        --cancel-label "Exit" \
+        --mixedform "" 17 80 11 \
+        "smsc-id/type         "  1 1  "${smscid}"  1 23 16 0 0 "/"  1 39 "${systemtype}" 1 40 15 0 0 \
+        "smsc host/port       "  2 1  "${host}" 2 23 16 0 0 "/" 2 39 "${port}" 2 40 15 0 0 \
+        "smsc-user/pass       "  3 1  "${smscusername}"         3 23 16 0 0 "/"  3 39  "${smscpassword}" 3 40 15 0 0 \
+        "transceiver-mode     "  5 1  "${transceivermode}"      5 23 1 0 0 \
+        "throughput           "  6 1  "${throughput}"           6 23 3 0 0 \
+        "alt-charset          "  7 1  "${altcharset}"           7 23 16 0 0 \
+        "enquire-link-interval"  9 1  "${enquirelinkinterval}"  9 23 3 0 0 \
+        "log-level            "  10 1 "${loglevel}"             10 23 3 0 0 \
+        2>&1 1>&3`
+
+        retcode=$?
+        exec 3>&-
+
+    if [ "$retcode" = "1" ];then
+        exit 0
+    fi
+
+    if [ "$retcode" = "0" ];then
+        read_output `echo "$vars" | tr "\n" " "`
+        if [ ${enaconf} = "No" -o "$mode" = "new" ];then
+	    dialog --title "Configuration prepared" --clear "$@" --backtitle "$TITLE" \
+	    --yes-label "Enable" --no-label "Later" \
+    	    --yesno "File ${prepared}/${smscid}.conf ready for saving \n\n\n \
+    	    Enable this SMSC now?" 10 50
+	    r=$?
+	    if [ $r = 0 ];then
+		enaconf="Yes"
+	    else
+		enaconf="No"
+	    fi
+	fi
+        test_conf
+    fi
+}
+
+read_output(){
+    smscid=${1:-"smpp-new"}
+    systemtype=${2:-"VAS"}
+    host=${3:-"127.0.0.1"}
+    port=${4:-3775}
+    smscusername=${5:-"SMSCUSER"}
+    smscpassword=${6:-"ToPSecrEt"}
+    transceivermode=${7:-1}
+    throughput=${8:-10}
+    altcharset=${9:-ASCII}
+    enquirelinkinterval=${10:-60}
+    loglevel=${11:-2}
+    enaconf="No"
+}
+
+test_conf(){
+    if [ "$mode" = "new" -a -f ${prepared}/${smscid}.conf ];then
+	dialog --title "STOP !!!" --clear "$@" --backtitle "$TITLE" \
+	    --yes-label "Overwrite" --no-label "Edit" \
+    	    --yesno "File ${prepared}/${smscid}.conf found !!! \n\n\n Overwrite this SMSC configuration now?" 10 55
+	    r=$?
+	    if [ "$r" = "0" ];then
+		write_smsc
+	    else
+		edit_smsc
+	    fi
+    fi
+    write_smsc
+}
+
+write_smsc(){
+cat <<EOF > ${prepared}/${smscid}.conf
+#---------------------------------------------
+# SMSC CONNECTION FOR ${smscid} SMSC
+# Protocol: SMPP v3.4 (transceiver mode)
+# Created by: NetSDS admin tools
+# Last update: `date`
+#
+group = smsc
+smsc = smpp
+smsc-id = ${smscid}
+allowed-smsc-id = "${smscid}"
+preferred-smsc-id = "${smscid}"
+system-type = ${systemtype}
+throughput = ${throughput}
+host = ${host}
+port = ${port}
+transceiver-mode = ${transceivermode}
+alt-charset = ${altcharset}
+smsc-username = ${smscusername}
+smsc-password = ${smscpassword}
+enquire-link-interval = ${enquirelinkinterval}
+log-file = "/var/log/kannel/${smscid}.log"
+log-level = ${loglevel}
+EOF
+
+if [ $enaconf = "Yes" ];then
+    ln -sf -t ${enabled} ../smsc.d/${smscid}.conf
+fi
+
+dialog --title "Done" --clear "$@" --backtitle "$TITLE" --yes-label "Exit" --no-label "Select other" \
+        --yesno "File ${prepared}/${smscid}.conf saved \n\n\n Exit now or edit other file?" 10 40
+ret=$?
+
+if [ $ret = 0 ];then
+dialog --title "Done" --clear "$@" --backtitle "$TITLE" \
+        --msgbox "Don't forget restart kannel." 6 35
+    
+    exit 0
+else
+    select_smsc
+fi
+
+}
+
+select_smsc
+read_config
+edit_smsc
+
+

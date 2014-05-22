@@ -1,0 +1,13 @@
+#!/bin/sh -ef
+
+ADMIN_PASSWD=`egrep '^admin-password' /etc/kannel/smskannel.conf | sed -e 's/^admin-password\s*=\s*//'`
+
+SMSC=$1
+
+if [ -z $SMSC ]
+then
+	echo "Usage: kannel-startsmsc <smsc-id>"
+	exit
+fi
+
+lynx -dump "http://127.0.0.1:13000/start-smsc?password=$ADMIN_PASSWD&smsc=$SMSC"

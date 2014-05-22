@@ -1,0 +1,15 @@
+# Kannel WAP/SMS gateway monitoring
+
+check process kannel.bearerbox with pidfile /var/run/kannel/bearerbox.pid
+	group servers
+	group kannel.bearerbox
+	start program = "/sbin/service kannel.bearerbox start"
+	stop  program = "/sbin/service kannel.bearerbox stop"
+
+check process kannel.smsbox with pidfile /var/run/kannel/smsbox.pid
+	group servers
+	group kannel.smsbox
+	depends on kannel.bearerbox
+	start program = "/sbin/service kannel.smsbox start"
+	stop  program = "/sbin/service kannel.smsbox stop"
+

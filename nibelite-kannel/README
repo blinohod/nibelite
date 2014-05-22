@@ -1,0 +1,7 @@
+This package provides Kannel infrastructure for Nibelite VAS platform.
+
+FEATURES
+
+* flexible Kannel configuration as SMSC gateway
+* Kannel management utilities
+* monit configuration files
