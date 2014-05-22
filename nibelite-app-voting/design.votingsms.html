@@ -1,0 +1,408 @@
+#TRANSLATE votingsms_title SMS Votings
+#TRANSLATE votingsms_head Votings Management and Statistics
+
+#TEMPLATE votingsms_menu
+<!-- a href="%SELF?do=votingsms-list">Managing votings</a>
+- <a href="%SELF?do=votingsms-stat">Statistics</a -->
+
+#TEMPLATE votingsms_default
+<h1>SMS votings</h1>
+<p>SMS votings is a interactive messaging service providing subscribers
+with ability to give a vote for some item (popular artist, next sound
+track on TV, etc). Results of the voting are available in near real-time
+that allows usage of the platform in interactive TV shows.</p>
+
+#TEMPLATE vs_manage
+<style type="text/css">
+
+	img.ic { border: none; vertical-align: middle; }
+	
+	div#Worksheet {
+		padding: 0.5em;
+		margin: 0;
+		background-color: #fff;
+		border: 2px solid #ccc;
+	}
+	
+	div#Worksheet h3 {
+		text-align: center;
+	}
+
+	.inav {
+		margin: 0;
+		padding: 0.25em;
+		text-align: right;
+	}
+	
+	ul.subItem {
+		list-style: none;
+		margin: 0 0 1em 0;
+		padding: 0 0 0 10em;
+	}
+	
+	.mob {
+		padding-left: 16px;
+		background-image: url(/img/phone.png);
+		background-repeat: no-repeat;
+	}
+
+</style>
+<script type="text/javascript"><!--
+
+	$(document).ready(function() {	
+		showVotings();
+	});
+
+	var Page = 0;
+
+	function showVotings () {
+		$('#Worksheet').fadeOut('fast',function () {
+			$.post('%SELF', {
+				'do' : 'votingsms-show',
+				'page' : Page
+			}, function(data) {
+				$('#Worksheet').html(data);
+				$('#Worksheet').fadeIn('fast');
+			});
+		});
+		return false;
+	}
+	
+	function pageNext () {
+		Page++;
+		showVotings();
+		return false;
+	}
+	
+	function pageBack () {
+		if (Page > 0) {
+			Page--;
+			showVotings();
+		}
+		return false;
+	}
+	
+	function votingReload ( voting_id ) {
+		$('#voting' + voting_id).fadeOut('fast',function () {
+			$.post('%SELF', {
+				'do' : 'votingsms-vdata',
+				'id' : voting_id
+			}, function(data) {
+				$('#voting'+voting_id).html(data);
+				$('#voting'+voting_id).fadeIn('fast');
+			});
+		});
+		return false;
+	}
+	
+	function votingReplyDefShow () {
+		$('#votingReplyDef').fadeOut('fast',function () {
+			$('#votingReplyDef').fadeIn('fast');
+		});
+		return false;
+	}
+	
+	function votingReplyDefCancel () {
+		$('#votingReplyDef').fadeOut('fast');
+		return false;
+	}
+	
+	function votingReplyDefUpdate() {
+		$('#votingReplyDef').fadeOut('fast',function () {
+			$.post('%SELF', $('#votingReplyDef').serialize(), function(data) {
+				showVotings();
+			});
+		});
+		return false;
+	}
+
+
+	function votingNewShow () {
+		$('#votingNew').fadeOut('fast',function () {
+			$('#votingNew').fadeIn('fast',function () {
+				$('#votingNewDescr').focus();
+			});
+		});
+		return false;
+	}
+	
+	function votingNewCancel () {
+		$('#votingNew').fadeOut('fast');
+		return false;
+	}
+	
+	function votingNewInsert() {
+		$('#votingNew').fadeOut('fast',function () {
+			$.post('%SELF', $('#votingNew').serialize(), function(data) {
+				showVotings();
+			});
+		});
+		return false;
+	}
+	
+	function votingEdit( voting_id ) {
+		$('#votingNoEdit'+voting_id).fadeOut('fast',function () {
+			$('#votingEdit'+voting_id).fadeIn('fast',function () {
+				$('#votingEditDescr'+voting_id).focus();
+			});
+		});
+		return false;
+	}
+
+	function votingEditCancel( voting_id ) {
+		votingReload(voting_id);
+		return false;
+	}
+	
+	function votingEditUpdate( voting_id ) {
+		$('#votingEdit'+voting_id).fadeOut('fast',function () {
+			$.post('%SELF', $('#votingEdit'+voting_id).serialize(), function(data) {
+				votingReload(voting_id);
+			});
+		});
+	}
+
+	function votingDelete( voting_id ) {
+		if (confirm("Do you really want to delete Voting \""+$('#votingDescr'+voting_id).text()+"\"?")) {
+			$.post('%SELF', {
+				'do' : 'votingsms-vdelete',
+				'id' : voting_id
+			}, function(data) {
+				showVotings();
+			});
+		}
+		return false;
+	}
+	
+	function votingStatus( voting_id, active ) {
+		$.post('%SELF', {
+			'do' : 'votingsms-vactive',
+			'id' : voting_id,
+			'active' : active
+		}, function(data) {
+			$('#votingActive'+voting_id).html(data);
+		});
+	}
+	
+	/* Answers */
+	
+	function answerNew ( voting_id ) {
+		$('#answerNew'+voting_id).fadeIn('fast',function () {
+			$('#answerNewKeyword'+voting_id).focus();
+		});
+		return false;
+	}
+	
+	function answerNewCancel ( voting_id ) {
+		$('#answerNew'+voting_id).fadeOut('fast');
+		return false;
+	}
+	
+	function answerNewInsert( voting_id ) {
+		$('#answerNew'+voting_id).fadeOut('fast',function () {
+			$.post('%SELF', $('#answerNew'+voting_id).serialize(), function(data) {
+				votingReload(voting_id);
+			});
+		});
+		return false;
+	}
+	
+	function answerEdit( answer_id ) {
+		$('#answerEdit'+answer_id).fadeIn('fast',function () {
+			$('#answerEditKeyword'+answer_id).focus();
+		});
+		return false;
+	}
+
+	function answerEditCancel( answer_id ) {
+		$('#answerEdit'+answer_id).fadeOut('fast');
+		return false;
+	}
+	
+	function answerEditUpdate( answer_id, voting_id ) {
+		$('#answerEdit'+answer_id).fadeOut('fast',function () {
+			$.post('%SELF', $('#answerEdit'+answer_id).serialize(), function(data) {
+				votingReload(voting_id);
+			});
+		});
+	}
+
+	function answerDelete( answer_id, voting_id ) {
+		if (confirm("Do you really want to delete Answer \""+$('#answerKeyword'+answer_id).text()+"\"?")) {
+			$.post('%SELF', {
+				'do' : 'votingsms-adelete',
+				'id' : answer_id
+			}, function(data) {
+				votingReload(voting_id);
+			});
+		}
+		return false;
+	}
+	
+	
+// --></script>
+<div id="Worksheet">&nbsp;</div>
+
+#TEMPLATE vs_list
+<h3>Votings Management</h3>
+<p><small>Click on lamp icon to quick change status.</small></p>
+<p>[<a href="javascript:void(0)" onClick="votingNewShow()">Create New Voting</a>]
+[<a href="javascript:void(0)" onClick="votingReplyDefShow()">Edit default SMS replies</a>]</p>
+<form id="votingReplyDef" name="votingReplyDef" method="post" action="%SELF" style="padding:1em;display:none" onSubmit="votingReplyDefUpdate();return false;}">
+	<center>
+		<input type="hidden" name="do" value="votingsms-replydefupdate" />
+		<table class="content">
+			<tr>
+				<th colspan="2">Default SMS Replies</td>
+			</tr>
+			<tr>
+				<th>Successful Vote</th>
+				<td><textarea rows="3" cols="80" name="def_ok">%def_ok</textarea></td>
+			</tr>
+			<tr>
+				<th>Failed Vote (already voted etc)</th>
+				<td><textarea rows="3" cols="80" name="def_fail">%def_fail</textarea></td>
+			</tr>
+			<tr>
+				<th>On Error (Bad Keyword)</th>
+				<td><textarea rows="3" cols="80" name="def_err">%def_err</textarea></td>
+			</tr>
+			<tr>
+				<th>HELP reply (there is no default help)</th>
+				<td><i>%def_help</i></td>
+			</tr>
+			<tr>
+				<th colspan="2">
+					<input type="button" name="ok" value="Save" onClick="votingReplyDefUpdate()" />
+					<input type="button" name="cancel" value="Cancel" onClick="votingReplyDefCancel()" />
+				</th>
+			</tr>
+		</table>
+	</center>
+</form>
+<form id="votingNew" name="votingNew" method="post" action="%SELF" style="padding:1em;display:none" onSubmit="{votingNewInsert();return false;}">
+	<center>
+		<input type="hidden" name="do" value="votingsms-vinsert" />
+		<table class="content">
+			<tr>
+				<th colspan="2">New Voting Info</th>
+				<th colspan="2">Allow Votes</th>
+				<th colspan="2">Access to Results</th>
+			</tr>
+			<tr>
+				<th>Service Number and Description</th>
+				<td><input type="text" name="sn" size="10" value="" class="mob" /><input type="text" id="votingNewDescr" name="descr" size="40" value="" /></td>
+				<th>Since</th>
+				<td><input type="text" name="since" size="12" value="%since" /></td>
+				<th>Login</th>
+				<td><input type="text" name="login" size="12" value="" /></td>
+			</tr>
+			<tr>
+				<td colspan="2"><label><input type="checkbox" name="multivote" value="1" checked="1" /> Multi-vote allowed</label></td>
+				<th>Till</th>
+				<td><input type="text" name="till" size="12" value="%till" /></td>
+				<th>Password</th>
+				<td><input type="text" name="passwd" size="12" value="" /></td>
+			</tr>
+			<tr>
+				<th colspan="6">
+					<input type="button" name="ok" value="Save" onClick="votingNewInsert()" />
+					<input type="button" name="cancel" value="Cancel" onClick="votingNewCancel()" />
+				</th>
+			</tr>
+		</table>
+	</center>
+</form>
+<div class="inav">Votings %start-%end of %total %back %more</div>
+%list
+<div class="inav">Votings %start-%end of %total %back %more</div>
+
+#TEMPLATE vs_more
+| <a href="javascript:void(0)" onClick="pageNext()">More</a>
+#TEMPLATE vs_back
+| <a href="javascript:void(0)" onClick="pageBack()">Back</a>
+#TEMPLATE vs_empty
+<center>No Votings yet. Try to add one with link above.</center>
+#TEMPLATE vs_active
+<a href="javascript:void(0)" onClick="votingStatus('%id',0)" title="Status: ACTIVE. Click to set inactive."><img class="ic" src="/img/i-on.png" alt="Active" /></a>
+#TEMPLATE vs_inactive
+<a href="javascript:void(0)" onClick="votingStatus('%id',1)" title="Status: INACTIVE. Click to set active."><img class="ic" src="/img/i-off.png" alt="Inactive" /></a>
+#TEMPLATE vs_item
+<div class="voting" id="voting%id">
+%voting
+</div>
+#TEMPLATE vs_voting
+<table class="content" width="100%" id="votingNoEdit%id">
+	<tr>
+		<td width="5%">#%id</td>
+		<td width="5%" id="votingActive%id">%active</td>
+		<td width="90%" colspan="2">[<a href="javascript:void(0)" onClick="votingEdit('%id')">edit</a>] <b><img src="/img/phone.png" class="ic" alt="SN" />%sn</b> - <b id="votingDescr%id">%descr</b></td>
+	</tr>
+	<tr>
+		<td colspan="2">%multivote</td>
+		<td width="45%">%since - %till</td>
+		<td width="45%">%login / %passwd</td>
+	</tr>
+</table>
+<form method="post" action="%SELF" id="votingEdit%id" style="margin:0;padding:0;display:none" onSubmit="{votingEditUpdate('%id');return false;}"><input type="hidden" name="do" value="votingsms-vupdate" /><input type="hidden" name="id" value="%id" />
+	<table class="content" width="100%">
+		<tr>
+			<td width="5%">#%id</td>
+			<td width="5%"><label><input type="checkbox" name="active" value="1" %actcheck /> Active</label></td>
+			<td width="90%" colspan="2">Service Number and Description:<br/><input type="text" name="sn" size="10" value="%sn" class="mob" /><input type="text" name="descr" size="60" value="%descr" /></td>
+		</tr>
+		<tr>
+			<td colspan="2"><label><input type="checkbox" name="multivote" value="1" %multicheck /> Multi-vote</label></td>
+			<td width="45%">Allow votes since - till:<br/><input type="text" name="since" size="12" value="%since" /> - <input type="text" name="till" size="12" value="%till" /></td>
+			<td width="45%">Login / password for viewing results:<br/><input type="text" name="login" size="12" value="%login" /> / <input type="text" name="passwd" size="12" value="%passwd" /></td>
+		</tr>
+		<tr>
+			<td colspan="2">&nbsp;
+			<td colspan="2">
+				SMS OK Reply (left blank for default &quot;%def_ok&quot;):<br/>
+				<textarea rows="2" cols="80" name="voting_ok">%voting_ok</textarea><br/>
+				SMS Vote Not Accepted Reply (left blank for default &quot;%def_fail&quot;):<br/>
+				<textarea rows="2" cols="80" name="voting_fail">%voting_fail</textarea><br/>
+				SMS Bad Keyword Reply (left blank for default &quot;%def_err&quot;):<br/>
+				<textarea rows="2" cols="80" name="voting_err">%voting_err</textarea><br/>
+				SMS HELP Reply (do not left blank!):<br/>
+				<textarea rows="2" cols="80" name="voting_help">%voting_help</textarea><br/>
+			</td>
+		</tr>
+		<tr>
+			<th colspan="4">
+				<input type="button" name="ok" value="Save" onClick="votingEditUpdate('%id')" />
+				<input type="button" name="cancel" value="Cancel" onClick="votingEditCancel('%id')" />
+				[<a href="javascript:void(0)" onClick="votingDelete('%id')" style="color:red">delete</a>]
+			</th>
+		</tr>
+	</table>
+</form>
+<table class="content" width="90%" style="margin-left:10%">
+	<tr>
+		<th width="10%">Keyword</th>
+		<th width="80%">Answer Description</th>
+		<th width="10%">Votes (%votes)</th>
+	</tr>
+	%answers
+	<tr><th colspan="3"><a href="javascript:void(0)" onClick="answerNew('%id')">Add new Answer</a><form method="post" action="%SELF" id="answerNew%id" style="margin:0;padding:0;text-align:center;display:none" onSubmit="{answerNewInsert('%id');return false;}"><input type="hidden" name="do" value="votingsms-ainsert" /><input type="hidden" name="voting_id" value="%id" /><input type="text" id="answerNewKeyword%id" name="keyword" size="12" value="" /><input type="text" name="descr" size="40" value="" />
+	<br/>
+	SMS Reply for new answer (leave blank for default &quot;%voting_ok&quot;)<br/>
+	<textarea rows="2" cols="80" name="reply_ok"></textarea><br/>
+	<input type="button" name="ok" value="Save" onClick="answerNewInsert('%id')" /><input type="button" name="cancel" value="Cancel" onClick="answerNewCancel('%id')" />
+	</form></th></tr>
+</table>
+<br/>
+#TEMPLATE vs_answer
+<tr>
+	<td id="answerKeyword%id">%keyword</td>
+	<td>[<a href="javascript:void(0)" onClick="answerEdit('%id')">edit</a>] %descr</td>
+	<td style="text-align:right">%num_votes</td>
+</tr>
+<tr>
+	<td colspan="3"><form method="post" action="%SELF" id="answerEdit%id" style="margin:0;padding:0;text-align:center;display:none" onSubmit="{answerEditUpdate('%id','%voting_id');return false;}"><input type="hidden" name="do" value="votingsms-aupdate" /><input type="hidden" name="id" value="%id" /><input type="text" id="answerEditKeyword%id" name="keyword" size="12" value="%keyword" /><input type="text" name="descr" size="40" value="%descr" /><br/>
+	SMS Reply for this answer (leave blank for default &quot;%reply_def&quot;)<br/>
+	<textarea rows="2" cols="80" name="reply_ok">%reply_ok</textarea><br/>
+	<input type="button" name="ok" value="Save" onClick="answerEditUpdate('%id','%voting_id')" /><input type="button" name="cancel" value="Cancel" onClick="answerEditCancel('%id')" /> [<a href="javascript:void(0)" onClick="answerDelete('%id','%voting_id')" style="color:red">delete</a>]
+	</form></td>
+</tr>

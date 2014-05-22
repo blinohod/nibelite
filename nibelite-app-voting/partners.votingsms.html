@@ -1,0 +1,85 @@
+#TRANSLATE votingsms_title SMS Votings
+#TEMPLATE page
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="refresh" content="10" />
+	<link rel="stylesheet" type="text/css" href="style/style.css" media="all" />
+	<title>%page_title</title>
+	<link rel="SHORTCUT ICON" href="/partners/favicon.ico">
+</head>
+<body>
+	<div id="wrapper">
+		<div id="header">
+			<h1>%page_title</h1>
+		</div>
+
+		<div id="content-wrapper">
+			<div id="content">
+				%page_menu
+				%page_main
+			</div>
+		</div>
+
+		<div id="footer">
+			<p><span>
+				&copy; 2011 Credoks International
+			</span></p>
+		</div>
+	</div>
+</body>
+</html>
+#TEMPLATE menu
+	<h3>Votings available</h3>
+	<table class="content" width="100%">
+		<tr><th><span>Code</span></th><th>Voting (Click to see results)</th><th>Export</th></tr>
+		%list
+	</table>
+	<br />
+#TEMPLATE menu_voting
+<tr>
+	<td align="right"><small><a href="%SELF?do=voting_results&amp;l=%login&amp;p=%pass&amp;id=%id">%sn</a></small></td>
+	<td><small><a href="%SELF?do=voting_results&amp;l=%login&amp;p=%pass&amp;id=%id">%descr</a></small></td>
+	<td><small>[<a href="%SELF?do=voting_results&amp;l=%login&amp;p=%pass&amp;id=%id&amp;xml=1">XML</a>]</small></td>
+</tr>
+#TEMPLATE voting_list
+<h2>%descr</h2>
+<p>
+	Short Code: %sn<br />
+	Total Votes: %total
+</p>
+<table class="content" width="100%">
+	<tr><th>Keyword</th><th>Description</th><th>Votes</th><th>Share</th></tr>
+	%votes
+</table>
+#TEMPLATE voting_list_item
+<tr><td align="center">%keyword</td><td>%descr</td><td align="right">%num_votes</td><td>&nbsp;--&nbsp;%share %</td></tr>
+#TEMPLATE voting_list_xml
+<?xml version="1.0" encoding="UTF-8"?>
+<voting>
+	<id>%id</id>
+	<sn>%sn</sn>
+	<description>%descr</description>
+	<total>%total</total>
+	<answers>
+		%votes
+	</answers>
+</voting>
+#TEMPLATE voting_list_item_xml
+		<answer>
+			<keyword>%keyword</keyword>
+			<description>%descr</description>
+			<votes>%num_votes</votes>
+		</answer>
+#TEMPLATE login
+<h2>Please log in</h2>
+<blockquote>
+	<form method="get" action="%SELF" name="login" style="text-align:center;">
+		<p>
+			Username: <input type="text" size="10" name="l" value='' />
+			Password: <input type="password" size="10" name="p" value='' />
+			<input type="submit" name="ok" value="Enter" />
+		</p>
+	</form>
+</blockquote>
