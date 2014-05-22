@@ -1,0 +1,1261 @@
+#TRANSLATE simplesms_title Simple SMS Services
+#TRANSLATE simplesms_head Text based SMS services
+#TRANSLATE serv_added New SMS Service added OK
+#TRANSLATE serv_add_error Error adding new service!
+
+
+#TEMPLATE simplesms_menu
+<a href="%SELF?do=simplesms-content">Content by topic</a>
+- <a href="%SELF?do=simplesms-ads">Advertisements</a>
+- <a href="%SELF?do=simplesms-setup">Service setup</a>
+
+#TEMPLATE simplesms_default
+<h1>Simple SMS services</h1>
+<p><b>SimpleSMS</b> is a VAS application for unified processing of text
+based SMS services with simple transactional "request-response" logic.</p>
+
+#TEMPLATE simplesms_serv_list
+<style type="text/css">
+	img.ic { border: none; vertical-align: middle; }
+	.servNav {
+		margin:0;
+		padding:0.5em;
+		text-align:center;
+		vertical-align:middle;
+		overflow:visible;
+	}
+	.servItem {
+		padding: 0.5em;
+		margin: 1px 0;
+		background-color: white;
+	}
+	.topicItem {
+		padding: 0.5em;
+		margin: 1px 0;
+		background-color: white;
+	}
+
+
+
+</style>
+
+<script type="text/javascript"><!--
+
+	$(document).ready(function() {	
+		loadServList();
+	});
+
+	function loadServList () {
+		$('#servList').fadeOut('fast', function() {
+			$.post('%SELF', $('#servForm').serialize(), function(data) {
+				$('#servList').html(data);
+				$('#servList').fadeIn();
+			});
+		});
+		return false;
+	}
+
+	function resetServList () {
+		$('#servFormPage').val('0');
+		loadServList();
+	}
+
+	function pageServBack() {
+		p = $('#servFormPage').val();
+		if( p > 0 ) {
+			$('#servFormPage').val(p-1);
+			loadServList();
+		}
+		return false;
+	}
+	
+	function pageServForward() {
+		p = $('#servFormPage').val();
+		$('#servFormPage').val(p+1);
+		loadServList();
+		return false;
+	}
+	
+	function getServEdit ( id ) {
+		$('#servEdit'+id).fadeOut('fast', function() {
+			$.post('%SELF', {
+				'do' : 'simplesms-getservedit', 
+				'serv_id' : id
+			}, function(data) {
+				$('#servEdit'+id).html(data);
+				$('#servEdit'+id).fadeIn();
+			});
+		});
+		return false;
+	}
+	
+	function servEditCancel ( id ) {
+		$('#servEdit'+id).fadeOut('fast', function() {
+			$('#servEdit'+id).html('');
+		});
+		return false;
+	}
+	
+	function servEditSave ( id ) {
+		$('#servEdit'+id).fadeOut('fast', function() {
+			$.post('%SELF', $('#servForm' + id).serialize(), function(data) {
+				$('#servEdit'+id).html('');
+				$('#servItem'+id).fadeOut('fast', function() {
+					$('#servItem'+id).html(data);
+					$('#servItem'+id).fadeIn();
+				});
+			});
+		});
+		return false;
+	}
+	
+	function servDelete ( id ) {
+		var conf = $('#servDelete'+id).val();
+		$('#servEdit'+id).fadeOut('fast', function() {
+			$.post('%SELF', {
+				'do' : 'simplesms-servdelete', 
+				'serv_id' : id,
+				'confirm' : conf
+			}, function(data) {
+				$('#servEdit'+id).html('');
+				if (data.match(/^DELETED/)) {
+					$('#servItem'+id).fadeOut('fast');
+					$('#servTopics'+id).fadeOut('fast');
+				}
+				showStatus(data);
+			});
+		});
+		return false;
+	}
+	
+	function servAddForm () {
+		$('#servAdd').fadeIn('fast', function() {
+			$('#addSn').focus();
+		});
+	}
+	
+	function servAddCancel () {
+		$('#servAdd').fadeOut('fast');
+		return false;
+	}
+	
+	function showStatus ( text ) {
+		$('#servStatus').html(text);
+		$('#servStatus').fadeIn('fast', function() {
+			setTimeout(function() {$('#servStatus').fadeOut('slow');}, 60000);
+		});
+	}
+	
+	function servAddSave () {
+		$.post('%SELF', $('#servFormAdd').serialize(), function(data) {
+			showStatus(data);
+			$('#servAdd').fadeOut('fast', function() {
+				resetServList();
+			});
+		});
+		return false;
+	}
+	
+	function getTopicList ( id ) {
+		$('#servTopics'+id).fadeOut('fast', function() {
+			$.post('%SELF', {
+				'do' : 'simplesms-getsetuptopics', 
+				'serv_id' : id
+			}, function(data) {
+				$('#servTopics'+id).html(data);
+				$('#servTopics'+id).fadeIn();
+			});
+		});
+		return false;
+	}
+	
+	function hideTopicList ( id ) {
+		$('#servTopics'+id).fadeOut('fast', function() {
+			$('#servTopics'+id).html('');
+		});
+		return false;
+	}
+
+	function topicGetEdit ( id ) {
+		$('#topicEdit'+id).fadeOut('fast', function() {
+			$.post('%SELF', {
+				'do' : 'simplesms-gettopicedit', 
+				'id' : id
+			}, function(data) {
+				$('#topicEdit'+id).html(data);
+				$('#topicEdit'+id).fadeIn();
+			});
+		});
+		return false;
+	}
+	
+	function topicEditCancel ( id ) {
+		$('#topicEdit'+id).fadeOut('fast', function() {
+			$('#topicEdit'+id).html('');
+		});
+		return false;
+	}
+	
+	function topicEditSave ( id, serv_id ) {
+		$('#topicEdit'+id).fadeOut('fast', function() {
+			$.post('%SELF', $('#topicForm' + id).serialize(), function(data) {
+				showStatus(data);
+				getTopicList(serv_id);
+			});
+		});
+		return false;
+	}
+
+	function topicSetDefault ( id, serv_id ) {
+		$.post('%SELF', {
+			'do' : 'simplesms-topicsetdefault', 
+			'id' : id
+		}, function(data) {
+			showStatus(data);
+			getTopicList(serv_id);
+		});
+		return false;
+	}
+
+	function topicDelete ( id, serv_id ) {
+		var conf = $('#topicDelete'+id).val();
+		$('#topicEdit'+id).fadeOut('fast', function() {
+			$.post('%SELF', {
+				'do' : 'simplesms-topicdelete', 
+				'id' : id,
+				'confirm' : conf
+			}, function(data) {
+				showStatus(data);
+				if (data.match(/^DELETED/)) {
+					getTopicList(serv_id);
+				}
+			});
+		});
+		return false;
+	}
+
+
+	function servTopicAdd ( serv_id ) {
+		$('#topicAdd'+serv_id).fadeOut('fast', function() {
+			$.post('%SELF', {
+				'do' : 'simplesms-gettopicadd', 
+				'serv_id' : serv_id
+			}, function(data) {
+				$('#topicAdd'+serv_id).html(data);
+				$('#topicAdd'+serv_id).fadeIn();
+			});
+		});
+		return false;
+	}
+	
+	function topicAddCancel ( serv_id ) {
+		$('#topicAdd'+serv_id).fadeOut('fast', function() {
+			$('#topicAdd'+serv_id).html('');
+		});
+		return false;
+	}
+	
+	function topicAddSave ( serv_id ) {
+		$('#topicAdd'+serv_id).fadeOut('fast', function() {
+			$.post('%SELF', $('#topicAddForm' + serv_id).serialize(), function(data) {
+				showStatus(data);
+				getTopicList(serv_id);
+			});
+		});
+		return false;
+	}
+
+//--></script>
+
+<form method="get" action="?" name="servForm" id="servForm">
+	<input type="hidden" name="do" value="simplesms-getservices" />
+	<input type="hidden" name="page" id="servFormPage" value="0" />
+	<center>
+		<table border="0" cellspacing="16">
+			<tr>
+				<td>Show</td>
+				<td><select name="active" onChange="resetServList()">
+					<option value="any">any</option>
+					<option value="yes" selected="1">only active</option>
+					<option value="no">only inactive</option>
+				</select></td>
+				<td>services</td>
+			</tr>
+		</table>
+	</center>
+</form>
+<div id="servStatus" style="display:none; border: 1px solid #999; padding: 0.5em; margin: 0.5em; text-align:center; background: #eee">&nbsp;</div>
+<div style="text-align:right"><a href="javascript:void(0)" onClick="servAddForm()">Add new service</a></div>
+<div id="servAdd" style="display:none">
+	<form method="post" name="servFormAdd" id="servFormAdd"><center>
+		<input type="hidden" name="do" value="simplesms-servaddsave" />
+		<table class="content">
+			<tr><th colspan="2">New Service</th></tr>
+			<tr><td>Service Number (SN)</td><td><input id="addSn" type="text" name="sn" value="" style="width:150px" /></td></tr>
+			<tr><td>Keyword Pattern (<a href="http://www.troubleshooters.com/codecorn/littperl/perlreg.htm" target="_blank" title="Brief summary of regular expressions in Perl">RegEx</a>)</td><td><input id="addKeyword" type="text" name="keyword" value="" style="width:150px" /></td></tr>
+			<tr><td>Type and Class</td><td><select name="active"><option value="1" selected="1">Active</option><option value="0">Inactive</option></select>&nbsp;<select name="class"><option value="LAST" selected="1">LAST: Send the latest Content</option><option value="RANDOM">RANDOM: Send random Content</option></select></td></tr>
+			<tr><td>Name</td><td><input type="text" name="name" value="" style="width:250px" id="addName" /></td></tr>
+			<tr><td>Description</td><td><textarea name="descr" rows="3" style="width:250px"></textarea></td></tr>
+			<tr><td>Help Message</td><td><textarea name="msg_help" rows="3" style="width:250px"></textarea></td></tr>
+			<tr><th colspan="2">
+				<input type="button" name="bSave" value="Add" onClick="servAddSave()" />
+				<input type="button" name="bCancel" value="Cancel" onClick="servAddCancel()" />
+			</th></tr>
+		</table></center>
+	</form>
+</div>
+
+<div id="servList" style="display:none;margin: 1em 0;">&nbsp;</div>
+
+#TEMPLATE simplesms_active
+<img class="ic" src="/img/i-on.png" alt="Active" />
+#TEMPLATE simplesms_inactive
+<img class="ic" src="/img/i-off.png" alt="Inactive" />
+
+#TEMPLATE simplesms_serv_item
+<div id="servItem%id" class="servItem">
+	%item
+</div>
+<div id="servEdit%id" style="display:none">&nbsp;</div>
+<div id="servTopics%id" style="display:none">&nbsp;</div>
+
+#TEMPLATE simplesms_serv_itemtable
+<table width="100%" border="0" cellspacing="8">
+	<tr>
+		<td width="10%">%active&nbsp;%id</td>
+		<td width="10%"><b>%sn<br/>%keyword</b><br/>%class</td>
+		<td width="65%">
+			<b>%name</b><br/>
+			%descr<br/>
+			Help message: <i>%msg_help</i>
+		</td>
+		<td width="15%">
+			<a href="javascript:void(0)" onClick="getTopicList('%id');">Show Topics</a><br/>
+			<a href="javascript:void(0)" onClick="getServEdit('%id');">Configure</a><br/>
+		</td>
+	</tr>
+</table>
+
+#TEMPLATE simplesms_serv_edit
+<form method="post" name="servForm%id" id="servForm%id"><center>
+	<input type="hidden" name="do" value="simplesms-serveditsave" />
+	<input type="hidden" name="id" value="%id" />
+	<table class="content">
+		<tr><th colspan="2">Configuring Service #%id</th></tr>
+		<tr><td>Service Number (SN)</td><td><input type="text" name="sn" value="%sn" style="width:150px" /></td></tr>
+		<tr><td>Keyword Pattern (<a href="http://www.troubleshooters.com/codecorn/littperl/perlreg.htm" target="_blank" title="Brief summary of regular expressions in Perl">RegEx</a>)</td><td><input type="text" name="keyword" value="%keyword" style="width:150px" /></td></tr>
+		<tr><td>Type and Class</td><td><select name="active"><option value="1" %s_active>Active</option><option value="0" %s_inactive>Inactive</option></select>&nbsp;<select name="class"><option value="LAST" %s_last>LAST: Send the latest Content</option><option value="RANDOM" %s_random>RANDOM: Send random Content</option></select></td></tr>
+		<tr><td>Name</td><td><input type="text" name="name" value="%name" style="width:250px" /></td></tr>
+		<tr><td>Description</td><td><textarea name="descr" rows="3" style="width:250px">%descr</textarea></td></tr>
+		<tr><td>Help Message</td><td><textarea name="msg_help" rows="3" style="width:250px">%msg_help</textarea></td></tr>
+		<tr><th colspan="2">
+			<input type="button" name="bSave" value="Save" onClick="servEditSave('%id')" />
+			<input type="button" name="bCancel" value="Cancel" onClick="servEditCancel('%id')" />
+		</th></tr>
+		<tr><td colspan="2">&nbsp;</td></tr>
+		<tr><td colspan="2" style="text-align:center;"><small>Type "yes" if you want to delete this service with all related topics and content:</small><br /><input type="text" name="delete" id="servDelete%id" value="" size="4" /><input type="button" name="bDel" value="Delete" onClick="servDelete('%id')" /></td></tr>
+	</table></center>
+</form>
+
+#TEMPLATE simplesms_serv_pageback
+<div style="width:22px;float:left;text-align:left"><a href="javascript:void(0)" onClick="pageServBack();" title="back"><img src="/img/i-prev.png" alt="back" class="ic" /></a></div>
+
+#TEMPLATE simplesms_serv_pagenext
+<div style="width:22px;float:right;text-align:right"><a href="javascript:void(0)" onClick="pageServForward();" title="next page"><img src="/img/i-next.png" alt="next page" class="ic" /></a></div>
+
+#TEMPLATE simplesms_serv_nav
+<div class="servNav">
+%way_back
+%way_forward
+services %start-%end of %total</div>
+
+#TEMPLATE simplesms_topiclist
+<div style="margin-left: 20%">
+	<div style="padding: 0.5em; margin:0; text-align: right;">
+		<a href="javascript:void(0)" onClick="hideTopicList('%service_id');">hide</a>
+		- <a href="javascript:void(0)" onClick="servTopicAdd('%service_id');"><b>Add new Topic</b></a>
+	</div>
+	<div id="topicAdd%service_id" style="display:none">&nbsp;</div>
+	%topics
+</div>
+
+#TEMPLATE simplesms_topic_item
+<div id="topicItem%id" class="topicItem">
+	<table width="100%" border="0" cellspacing="8">
+		<tr>
+			<td width="10%">%active&nbsp;%id</td>
+			<td width="10%"><b>%default<br/>%keyword</b></td>
+			<td width="65%">
+				<b>%name</b><br/>
+				%descr<br/>
+				Content template: [<i>%template</i>]<br/>
+			</td>
+			<td width="15%">
+				<a href="javascript:void(0)" onClick="topicGetEdit('%id');">Edit Topic</a><br/>
+				<a href="javascript:void(0)" onClick="topicSetDefault('%id','%serv_id');">Set as default</a><br/>
+			</td>
+		</tr>
+	</table>
+</div>
+<div id="topicEdit%id" style="display:none">&nbsp;</div>
+
+#TEMPLATE simplesms_topic_edit
+<form name="topicForm%id" id="topicForm%id" method="post" action="%SELF">
+	<input type="hidden" name="do" value="simplesms-topiceditsave" />
+	<input type="hidden" name="id" value="%id" />
+	<center>
+		<table class="content">
+			<tr><th colspan="2">Edit Topic #%id</th></tr>
+			<tr><td>Service</td><td>#%service_id - %service_name</td></tr>
+			<tr><td>Keyword Pattern (<a href="http://www.troubleshooters.com/codecorn/littperl/perlreg.htm" target="_blank" title="Brief summary of regular expressions in Perl">RegEx</a>)</td><td><input type="text" name="keyword" value="%keyword" style="width:150px" /></td></tr>
+			<tr><td>Name</td><td><input type="text" name="name" value="%name" style="width:250px" /></td></tr>
+			<tr><td>Type</td><td><select name="active"><option value="1" %s_active>Active</option><option value="0" %s_inactive>Inactive</option></select></td></tr>
+			<tr><td>Description</td><td><textarea name="descr" rows="3" style="width:250px">%descr</textarea></td></tr>
+			<tr><td>Content Template</td><td><textarea name="template" rows="3" style="width:250px">%template</textarea></td></tr>
+			<tr><th colspan="2">
+				<input type="button" name="bSave" value="Save" onClick="topicEditSave('%id','%service_id')" />
+				<input type="button" name="bCancel" value="Cancel" onClick="topicEditCancel('%id')" />
+			</th></tr>
+			<tr><td colspan="2">&nbsp;</td></tr>
+			<tr><td colspan="2" style="text-align:center;"><small>Type "yes" if you want to delete this topic with all related content:</small><br /><input type="text" name="delete" id="topicDelete%id" value="" size="4" /><input type="button" name="bDel" value="Delete" onClick="topicDelete('%id','%service_id')" /></td></tr>
+		</table>
+	</center>
+</form>
+
+#TEMPLATE simplesms_topic_add
+<form name="topicAddForm%service_id" id="topicAddForm%service_id" method="post" action="%SELF">
+	<input type="hidden" name="do" value="simplesms-topicaddsave" />
+	<input type="hidden" name="service_id" value="%service_id" />
+	<center>
+		<table class="content">
+			<tr><th colspan="2">Add new Topic</th></tr>
+			<tr><td>Service</td><td>#%service_id - %service_name</td></tr>
+			<tr><td>Keyword Pattern (<a href="http://www.troubleshooters.com/codecorn/littperl/perlreg.htm" target="_blank" title="Brief summary of regular expressions in Perl">RegEx</a>)</td><td><input type="text" name="keyword" value="" style="width:150px" /></td></tr>
+			<tr><td>Name</td><td><input type="text" name="name" value="" style="width:250px" /></td></tr>
+			<tr><td>Type</td><td><select name="active"><option value="1" selected="1">Active</option><option value="0">Inactive</option></select></td></tr>
+			<tr><td>Description</td><td><textarea name="descr" rows="3" style="width:250px"></textarea></td></tr>
+			<tr><td>Content Template</td><td><textarea name="template" rows="3" style="width:250px"></textarea></td></tr>
+			<tr><th colspan="2">
+				<input type="button" name="bSave" value="Add Topic" onClick="topicAddSave('%service_id')" />
+				<input type="button" name="bCancel" value="Cancel" onClick="topicAddCancel('%service_id')" />
+			</th></tr>
+		</table>
+	</center>
+</form>
+
+#TEMPLATE simplesms_content
+<style type="text/css">
+	img.ic { border: none; vertical-align: middle; }
+	
+	div#iTree {
+		width: 20%;
+		float: left;
+		padding: 0 8px;
+		margin: 0;
+		overflow: auto;
+	}
+	
+	div#iList {
+		width: 75%;
+		float: right;
+		border: 2px solid #999999;
+		padding: 8px;
+		margin: 0;
+		background-color: #fff;
+		overflow: auto;
+	}
+	
+	.chead {
+		padding: 0.5em;
+		background-color: #ccc;
+		font-weight: bold;
+		text-align: center;
+		margin: 0 0 0.5em 0;
+	}
+
+	ul#iServices {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	
+	ul#iServices li {
+		margin: 1px;
+		padding: 0;
+		background-color: #ccc;
+	}
+	
+	ul#iServices li ul {
+		display: none;
+		list-style: none;
+		margin: 0 0 0 2em;
+		padding: 0;
+	}
+	
+	ul#iServices li a {
+		display: block;
+		padding: 2px;
+		font-weight: bold;
+		color: black;
+		text-decoration: none;
+	}
+	
+	ul#iServices li a:hover {
+		color: white;
+		background-color: navy;
+	}
+	
+	ul#iServices li ul li a {
+		display: block;
+		padding: 2px;
+		font-weight: normal;
+		background-color: #ddd;
+		color: black;
+		text-decoration: none;
+	}
+	
+	ul#iServices li ul li a:hover {
+		color: white;
+		background-color: navy;
+	}
+	
+	table.imsg {
+		margin: 0.5em 0;
+		padding: 0;
+		border: none;
+		border-collapse: collapse;
+	}
+	
+	table.imsg tr td {
+		text-align: left;
+		vertical-align: top;
+		margin: 0;
+		padding: 0.25em;
+		border: none;
+		border-top: 1px solid #eee;
+	}
+	
+	table.imsg tr td a {
+		display: block;
+		text-decoration: none;
+		color: black;
+	}
+	
+	table.imsg tr td a:hover {
+		text-decoration: none;
+		color: white;
+		background-color: navy;
+	}
+	
+	table.imsg tr th {
+		vertical-align: top;
+		margin: 0;
+		padding: 0.25em;
+		border: none;
+		background-color: #eee;
+		color: black;
+	}
+	
+	.inav {
+		margin: 0;
+		padding: 0.25em;
+		text-align: right;
+	}
+	
+</style>
+
+<script type="text/javascript"><!--
+
+	var GSM = new Array();
+	GSM[0x0040]=1;GSM[0x0000]=1;GSM[0x00A3]=1;GSM[0x0024]=1;
+	GSM[0x00A5]=1;GSM[0x00E8]=1;GSM[0x00E9]=1;GSM[0x00F9]=1;
+	GSM[0x00EC]=1;GSM[0x00F2]=1;GSM[0x00E7]=1;GSM[0x00C7]=1;
+	GSM[0x000A]=1;GSM[0x00D8]=1;GSM[0x00F8]=1;GSM[0x000D]=1;
+	GSM[0x00C5]=1;GSM[0x00E5]=1;GSM[0x0394]=1;GSM[0x005F]=1;
+	GSM[0x03A6]=1;GSM[0x0393]=1;GSM[0x039B]=1;GSM[0x03A9]=1;
+	GSM[0x03A0]=1;GSM[0x03A8]=1;GSM[0x03A3]=1;GSM[0x0398]=1;
+	GSM[0x039E]=1;GSM[0x00A0]=1;
+
+	GSM[0x000C]=2;GSM[0x005E]=2;GSM[0x007B]=2;GSM[0x007D]=2;
+	GSM[0x005C]=2;GSM[0x005B]=2;GSM[0x007E]=2;GSM[0x005D]=2;
+	GSM[0x007C]=2;GSM[0x20AC]=2;
+
+	GSM[0x00C6]=1;GSM[0x00E6]=1;GSM[0x00DF]=1;GSM[0x00C9]=1;
+	GSM[0x0020]=1;GSM[0x0021]=1;GSM[0x0022]=1;GSM[0x0023]=1;
+	GSM[0x00A4]=1;GSM[0x0025]=1;GSM[0x0026]=1;GSM[0x0027]=1;
+	GSM[0x0028]=1;GSM[0x0029]=1;GSM[0x002A]=1;GSM[0x002B]=1;
+	GSM[0x002C]=1;GSM[0x002D]=1;GSM[0x002E]=1;GSM[0x002F]=1;
+	GSM[0x0030]=1;GSM[0x0031]=1;GSM[0x0032]=1;GSM[0x0033]=1;
+	GSM[0x0034]=1;GSM[0x0035]=1;GSM[0x0036]=1;GSM[0x0037]=1;
+	GSM[0x0038]=1;GSM[0x0039]=1;GSM[0x003A]=1;GSM[0x003B]=1;
+	GSM[0x003C]=1;GSM[0x003D]=1;GSM[0x003E]=1;GSM[0x003F]=1;
+	GSM[0x00A1]=1;GSM[0x0041]=1;GSM[0x0391]=1;GSM[0x0042]=1;
+	GSM[0x0392]=1;GSM[0x0043]=1;GSM[0x0044]=1;GSM[0x0045]=1;
+	GSM[0x0395]=1;GSM[0x0046]=1;GSM[0x0047]=1;GSM[0x0048]=1;
+	GSM[0x0397]=1;GSM[0x0049]=1;GSM[0x0399]=1;GSM[0x004A]=1;
+	GSM[0x004B]=1;GSM[0x039A]=1;GSM[0x004C]=1;GSM[0x004D]=1;
+	GSM[0x039C]=1;GSM[0x004E]=1;GSM[0x039D]=1;GSM[0x004F]=1;
+	GSM[0x039F]=1;GSM[0x0050]=1;GSM[0x03A1]=1;GSM[0x0051]=1;
+	GSM[0x0052]=1;GSM[0x0053]=1;GSM[0x0054]=1;GSM[0x03A4]=1;
+	GSM[0x0055]=1;GSM[0x0056]=1;GSM[0x0057]=1;GSM[0x0058]=1;
+	GSM[0x03A7]=1;GSM[0x0059]=1;GSM[0x03A5]=1;GSM[0x005A]=1;
+	GSM[0x0396]=1;GSM[0x00C4]=1;GSM[0x00D6]=1;GSM[0x00D1]=1;
+	GSM[0x00DC]=1;GSM[0x00A7]=1;GSM[0x00BF]=1;GSM[0x0061]=1;
+	GSM[0x0062]=1;GSM[0x0063]=1;GSM[0x0064]=1;GSM[0x0065]=1;
+	GSM[0x0066]=1;GSM[0x0067]=1;GSM[0x0068]=1;GSM[0x0069]=1;
+	GSM[0x006A]=1;GSM[0x006B]=1;GSM[0x006C]=1;GSM[0x006D]=1;
+	GSM[0x006E]=1;GSM[0x006F]=1;GSM[0x0070]=1;GSM[0x0071]=1;
+	GSM[0x0072]=1;GSM[0x0073]=1;GSM[0x0074]=1;GSM[0x0075]=1;
+	GSM[0x0076]=1;GSM[0x0077]=1;GSM[0x0078]=1;GSM[0x0079]=1;
+	GSM[0x007A]=1;GSM[0x00E4]=1;GSM[0x00F6]=1;GSM[0x00F1]=1;
+	GSM[0x00FC]=1;GSM[0x00E0]=1;
+
+	$(document).ready(function() {	
+		resizeColumns();
+		$(window).resize(resizeColumns);
+		loadTopics();
+	});
+
+	function resizeColumns () {
+		$('#main').height($(window).height() - ($('body').height() - $('#main').height() + 18));
+		$('#iTree').height($('#main').height());
+		$('#iList').height($('#main').height() - 2*(8+2));
+	}
+	
+	function loadTopics () {
+		$('#iMenu').fadeOut('fast',function () {
+			$.post('%SELF', {
+				'do' : 'simplesms-contentgettopics'
+			}, function(data) {
+				$('#iMenu').html(data);
+				$('#iMenu').fadeIn('fast');
+			});
+		});
+		return false;
+	}
+	
+	function topicChoose ( id ) {
+		topicPage = 0;
+		$('#iContent').fadeOut('fast',function () {
+			$.post('%SELF', {
+				'do' : 'simplesms-contenttopic',
+				'id' : id
+			}, function(data) {
+				$('#iContent').html(data);
+				$('#iContent').fadeIn('fast', function () {
+					getMessages();
+				});
+			});
+		});
+		return false;
+	}
+	
+	function getMessages () {
+		$('#iMessages').hide(0, function () {
+			$.post('%SELF', $('#formGetMessages').serialize(), function (subdata) {
+				$('#iMessages').html(subdata);
+				$('#iMessages').fadeIn('fast');
+			});
+		});
+		return false;
+	}
+	
+	function contentPageNext () {
+		$('#page').val($('#page').val()+1);
+		getMessages();
+	}
+	
+	function contentPageBack () {
+		$('#page').val($('#page').val()-1);
+		getMessages();
+	}
+	
+	function listExpand ( id ) {
+		$('#topics'+id).slideDown();
+		return false;
+	}
+
+	function contentAllowDelete() {
+		$('#contentDel').fadeIn('slow');
+		return false;
+	}
+	
+	function initContentForm() {
+		refreshBytesCount();
+		$("#msgBody").keyup(refreshBytesCount);
+		$("#sinceDate").datepicker({
+			dateFormat: 'dd.mm.yy',
+			stepMinutes: 15,
+			stepHours: 1,
+			time24h: true,
+			showTime: false,
+			duration: 0
+		});
+		$("#tillDate").datepicker({
+			dateFormat: 'dd.mm.yy',
+			stepMinutes: 15,
+			stepHours: 1,
+			time24h: true,
+			showTime: false,
+			duration: 0
+		});
+	}
+	
+	function refreshBytesCount() {
+		var str = $('#msgBody').val();
+		var len = str.length;
+		var smsSize = 160;
+
+		var unicode = false;
+		for (var i=0; i<len; i++) {
+			if (GSM[str.charCodeAt(i)] == undefined) {
+				unicode = true;
+				smsSize = 70;
+			}
+		}
+		
+		var cntBytes = 0;
+		var cntSms = 0;
+		var coding = '';
+
+		if (unicode) {
+			cntBytes = len * 2;
+			cntSms = Math.ceil(cntBytes / 70);
+			coding = 'UCS-2 16bit';
+		} else {
+			for (var k=0; k<len; k++) 
+				cntBytes += GSM[str.charCodeAt(k)];
+			cntSms = Math.ceil(cntBytes / 160);
+			coding = 'GSM 7bit';
+		}
+		
+		$('#cntBytes').html(cntBytes);
+		$('#cntSms').html(cntSms);
+		$('#coding').html(coding);
+	}
+
+	function contentAdd ( serv_id, topic_id ) {
+		$('#iMessages').hide(0, function () {
+			$.post('%SELF', {
+				'do' : 'simplesms-contentadd',
+				'serv_id' : serv_id,
+				'topic_id' : topic_id
+			}, function (data) {
+				$('#iMessages').html(data);
+				$('#iMessages').fadeIn('fast');
+				initContentForm();
+			});
+		});
+		return false;
+	}
+	
+	function contentEditMessage ( content_id ) {
+		$('#iMessages').hide(0, function () {
+			$.post('%SELF', {
+				'do' : 'simplesms-contentedit',
+				'serv_id' : $('#serv_id').val(),
+				'topic_id' : $('#topic_id').val(),
+				'content_id' : content_id
+			}, function (data) {
+				$('#iMessages').html(data);
+				$('#iMessages').fadeIn('fast');
+				initContentForm();
+			});
+		});
+		return false;
+	}
+
+	
+	function contentSave () {
+		$('#iMessages').hide(0, function () {
+			$.post('%SELF', $('#contentEditForm').serialize(), function (data) {
+				$('#iMessages').html('<center>'+data+'</center>');
+				$('#iMessages').fadeIn('fast');
+				setTimeout(getMessages,500);
+			});
+		});
+		return false;
+	}
+
+//--></script>
+
+<div id="iTree">
+	<div class="chead">Services and Topics</div>
+	<div id="iMenu">&nbsp;</div>
+</div>
+<div id="iList"><div id="iContent"><center><b>Choose Topic...</b></center></div></div>
+
+#TEMPLATE simplesms_content_menu
+<ul id="iServices">%list</ul>
+#TEMPLATE simplesms_content_menu_empty
+<li>%title</li>
+#TEMPLATE simplesms_content_menu_topics
+<li><a href="javascript:void(0)" onClick="listExpand('%id')">%title</a><ul id="topics%id">%topics</ul></li>
+#TEMPLATE simplesms_content_menu_topic
+<li><a href="javascript:void(0)" onClick="topicChoose('%id')">%title</a></li>
+#TEMPLATE simplesms_content_topic
+<center>
+	<h3>Service: %serv_sn %serv_name - %serv_descr</h3>
+	<h3>Topic: %topic_name - %topic_descr</h3>
+	<small>service active: %serv_active; topic active: %topic_active</small><br/>
+</center>
+<form method="post" action="%SELF" name="formGetMessages" id="formGetMessages" style="display:none">
+	<input type="hidden" name="do" value="simplesms-contentlist" />
+	<input type="hidden" name="serv_id" id="serv_id" value="%serv_id" />
+	<input type="hidden" name="topic_id" id="topic_id" value="%topic_id" />
+	<input type="hidden" name="page" id="page" value="0" />
+</form>
+<br />
+<div class="ibtn"><input type="button" name="iAddC" value="Add New Content" onClick="contentAdd('%serv_id','%topic_id')" /></div>
+<div id="iMessages">&nbsp;</div>
+
+#TEMPLATE simplesms_content_empty
+<center>No content in this topic. Click button above to add one.</center>
+
+#TEMPLATE simplesms_content_messages
+<div class="inav">Content messages %start-%end of %total %back %more</div>
+<table class="imsg" width="100%">
+	<tr><th>#</th><th>Message</th><th>Since Date</th><th>Till Date</th><th>Orders</th></tr>
+	%messages
+</table>
+<div class="inav">Content messages %start-%end of %total %back %more</div>
+
+#TEMPLATE simplesms_content_more
+| <a href="javascript:void(0)" onClick="contentPageNext()">More</a>
+#TEMPLATE simplesms_content_back
+| <a href="javascript:void(0)" onClick="contentPageBack()">Back</a>
+#TEMPLATE simplesms_content_messages_item
+<tr>
+	<td style="text-align:right">%id</td>
+	<td><a href="javascript:void(0)" onClick="contentEditMessage('%id')" title="Click to edit message">%text</a></td>
+	<td style="text-align:center">%since</td><td style="text-align:center">%till</td><td style="text-align:right">%orders</td>
+</tr>
+
+#TEMPLATE simplesms_content_edit
+<form method="post" action="%SELF" name="contentEditForm" id="contentEditForm">
+	<input type="hidden" name="do" value="simplesms-contentsave" />
+	<input type="hidden" name="serv_id" value="%serv_id" />
+	<input type="hidden" name="topic_id" value="%topic_id" />
+	<input type="hidden" name="content_id" value="%content_id" />
+	<center>
+		<table class="content" width="65%">
+			<tr><th colspan="2">%formtitle</th></tr>
+			<tr><td colspan="2" align="center"><textarea name="text" cols="80" rows="5" style="width:100%" id="msgBody">%text</textarea></td></tr>
+			<tr><th colspan="2" style="text-align:left">
+				Bytes: <b id="cntBytes">0</b> |
+				SMS: <b id="cntSms">0</b> |
+				Coding: <b id="coding">n/a</b>
+			</th></tr>
+			<tr>
+				<td>Active since:</td>
+				<td><input type="text" size="20" name="since" value="%since" id="sinceDate" /></td>
+			</tr>
+			<tr>
+				<td>Active till:</td>
+				<td><input type="text" size="20" name="till" value="%till" id="tillDate" /></td>
+			</tr>
+			%delete
+			<tr><th colspan="2">
+				<input type="button"  name="bSave" value="Save" onClick="contentSave()" />
+				<input type="button" name="bCancel" value="Cancel" onClick="getMessages()" />
+			</th></tr>
+		</table>
+	</center>
+</form>
+
+#TEMPLATE simplesms_formtitle_add
+New Content message
+#TEMPLATE simplesms_formtitle_edit
+Editing Content message #%id
+#TEMPLATE simplesms_content_delete
+<tr>
+	<td><a href="javascript:void(0)" onClick="contentAllowDelete()">Delete this message</a></td>
+	<td><div style="display:none; color:red;" id="contentDel"><input type="checkbox" name="delete" value="1" /> Check this box to confirm</div></td>
+</tr>
+
+#TEMPLATE simplesms_ads
+<style type="text/css">
+
+	img.ic { border: none; vertical-align: middle; }
+	
+	div#adHeader {
+		padding: 0.5em;
+		text-align: center;
+	}
+	
+	div#adWorksheet {
+		padding: 0.5em;
+		margin: 0;
+		background-color: #fff;
+		border: 2px solid #ccc;
+	}
+	
+	div#adWorksheet h3 {
+		text-align: center;
+	}
+
+	.inav {
+		margin: 0;
+		padding: 0.25em;
+		text-align: right;
+	}
+	
+	ul.campAds {
+		list-style: none;
+		margin: 0 0 1em 0;
+		padding: 0 0 0 10em;
+	}
+
+	table.imsg {
+		margin: 0.5em 0;
+		padding: 0;
+		border: none;
+		border-collapse: collapse;
+	}
+	
+	table.imsg tr td {
+		text-align: left;
+		vertical-align: top;
+		margin: 0;
+		padding: 0.25em;
+		border: none;
+		border-top: 1px solid #eee;
+	}
+	
+	table.imsg tr td a {
+		display: block;
+		text-decoration: none;
+		color: black;
+	}
+	
+	table.imsg tr td a:hover {
+		text-decoration: none;
+		color: white;
+		background-color: navy;
+	}
+	
+	table.imsg tr th {
+		vertical-align: top;
+		margin: 0;
+		padding: 0.25em;
+		border: none;
+		background-color: #eee;
+		color: black;
+	}
+
+</style>
+<script type="text/javascript"><!--
+
+	$(document).ready(function() {	
+		showCampaigns();
+	});
+
+	function selectLink ( id ) {
+		$('#adHeader a').css('font-weight','normal');
+		$('#'+id).css('font-weight','bold');
+	}
+
+	var campPage = 0;
+
+	function showCampaigns () {
+		$('#adWorksheet').fadeOut('fast',function () {
+			$.post('%SELF', {
+				'do' : 'simplesms-adshowcampaigns',
+				'page' : campPage
+			}, function(data) {
+				selectLink('adACamp');
+				$('#adWorksheet').html(data);
+				$('#adWorksheet').fadeIn('fast');
+			});
+		});
+		return false;
+	}
+	
+	function showMappings () {
+		$('#adWorksheet').fadeOut('fast',function () {
+			$.post('%SELF', {
+				'do' : 'simplesms-adshowmappings'
+			}, function(data) {
+				selectLink('adAServ');
+				$('#adWorksheet').html(data);
+				$('#adWorksheet').fadeIn('fast');
+			});
+		});
+		return false;
+	}
+	
+	function adCampPageNext () {
+		campPage++;
+		showCampaigns();
+		return false;
+	}
+	
+	function adCampPageBack () {
+		if (campPage > 0) {
+			campPage--;
+			showCampaigns();
+		}
+		return false;
+	}
+	
+	function adNewCampaign () {
+		$('#adCampNew').fadeOut('fast',function () {
+			$('#adCampNewName').val('');
+			$('#adCampNew').fadeIn('fast',function () {
+				$('#adCampNewName').focus();
+			});
+		});
+		return false;
+	}
+	
+	function adNewCampaignCancel () {
+		$('#adCampNew').fadeOut('fast');
+		return false;
+	}
+	
+	function adInsertCampaign() {
+		$('#adCampNew').fadeOut('fast',function () {
+			$.post('%SELF', $('#adCampNew').serialize(), function(data) {
+				showCampaigns();
+			});
+		});
+		return false;
+	}
+	
+	function adCampEdit( camp_id ) {
+		$('#campNoEdit'+camp_id).fadeOut('fast',function () {
+			$('#campEdit'+camp_id).fadeIn('fast',function () {
+				$('#campEditName'+camp_id).focus();
+			});
+		});
+		return false;
+	}
+	
+	function adCampEditSave( camp_id ) {
+		var name = $('#campEditName'+camp_id).val();
+		if ( name == '' ) {
+			alert('Campaign name required!');
+		} else {
+			$('#campEdit'+camp_id).fadeOut('fast',function () {
+				$.post('%SELF', {
+					'do' : 'simplesms-adcampupdate',
+					'id' : camp_id,
+					'name' : name
+				}, function(data) {
+					$('#campName'+camp_id).text(data);
+					$('#campNoEdit'+camp_id).fadeIn('fast');
+				});
+			});
+		}
+		return false;
+	}
+	
+	function adCampEditCancel( camp_id ) {
+		$('#campEditName'+camp_id).val($('#campName'+camp_id).text());
+		$('#campEdit'+camp_id).fadeOut('fast',function () {
+			$('#campNoEdit'+camp_id).fadeIn('fast');
+		});
+		return false;
+	}
+	
+	function adCampDelete( camp_id ) {
+		if (confirm("Do you really want to delete Campaign \""+$('#campName'+camp_id).text()+"\"?")) {
+			$.post('%SELF', {
+				'do' : 'simplesms-adcampdelete',
+				'id' : camp_id
+			}, function(data) {
+				showCampaigns();
+			});
+		}
+		return false;
+	}
+	
+	function adChangeStatus( camp_id, active ) {
+		$.post('%SELF', {
+			'do' : 'simplesms-adcampactive',
+			'id' : camp_id,
+			'active' : active
+		}, function(data) {
+			$('#campActive'+camp_id).html(data);
+		});
+	}
+	
+	function adCampNewAd( camp_id ) {
+		$('#campNewAdForm'+camp_id).fadeOut('fast',function () {
+			$('#campNewAdName'+camp_id).val('');
+			$('#campNewAdForm'+camp_id).fadeIn('fast',function () {
+				$('#campNewAdName'+camp_id).focus();
+			});
+		});
+		return false;
+	}
+	
+	function adCampNewAdSave( camp_id ) {
+		var name = $('#campNewAdName'+camp_id).val();
+		if ( name == '' ) {
+			alert('Advertising text required!');
+		} else {
+			$('#campNewAdForm'+camp_id).fadeOut('fast',function () {
+				$.post('%SELF', {
+					'do' : 'simplesms-adadinsert',
+					'camp_id' : camp_id,
+					'name' : name
+				}, function(data) {
+					$('#campNewAd'+camp_id).after(data);
+				});
+			});
+		}
+		return false;
+	}
+	
+	function adCampNewAdCancel( camp_id ) {
+		$('#campNewAdForm'+camp_id).fadeOut('fast');
+		return false;
+	}
+	
+	function adAdEdit( ad_id ) {
+		$('#adNoEdit'+ad_id).fadeOut('fast',function () {
+			$('#adEdit'+ad_id).fadeIn('fast',function () {
+				$('#adEditName'+ad_id).focus();
+			});
+		});
+		return false;
+	}
+
+	function adAdEditSave( ad_id ) {
+		var name = $('#adEditName'+ad_id).val();
+		if ( name == '' ) {
+			alert('Advertising text required!');
+		} else {
+			$('#adEdit'+ad_id).fadeOut('fast',function () {
+				$.post('%SELF', {
+					'do' : 'simplesms-adadupdate',
+					'id' : ad_id,
+					'name' : name
+				}, function(data) {
+					$('#adName'+ad_id).text(data);
+					$('#adNoEdit'+ad_id).fadeIn('fast');
+				});
+			});
+		}
+		return false;
+
+	}
+
+	function adAdEditCancel( ad_id ) {
+		$('#adEditName'+ad_id).val($('#adName'+ad_id).text());
+		$('#adEdit'+ad_id).fadeOut('fast',function () {
+			$('#adNoEdit'+ad_id).fadeIn('fast');
+		});
+		return false;
+	}
+	
+	function adAdDelete( ad_id ) {
+		if (confirm("Do you really want to delete Ad \""+$('#adName'+ad_id).text()+"\"?")) {
+			$.post('%SELF', {
+				'do' : 'simplesms-adaddelete',
+				'id' : ad_id
+			}, function(data) {
+				$('#campAd'+ad_id).fadeOut('fast',function () {
+					$('#campAd'+ad_id).remove();
+				});
+			});
+		}
+		return false;
+	}
+
+	function adMapTopic( id ) {
+		var camp_id = $('#selTopic'+id).val();
+		$('#selTopic'+id).fadeOut('fast',function () {
+			$.post('%SELF', {
+				'do' : 'simplesms-admaptopic',
+				'id' : id,
+				'camp_id' : camp_id
+			}, function(data) {
+				$('#selTopic'+id).fadeIn('fast');
+			});
+		});
+		return false;
+	}
+	
+	function adMapServ( id ) {
+		var camp_id = $('#selServ'+id).val();
+		$('#selServ'+id).fadeOut('fast',function () {
+			$.post('%SELF', {
+				'do' : 'simplesms-admapserv',
+				'id' : id,
+				'camp_id' : camp_id
+			}, function(data) {
+				showMappings();
+			});
+		});
+		return false;
+	}
+
+//--></script>
+<div id="adHeader">
+<a href="javascript:void(0)" id="adACamp" onClick="showCampaigns()">Manage Campaigns and Advertisements</a>
+| <a href="javascript:void(0)" id="adAServ" onClick="showMappings()">Assign Campaigns to Services and Topics</a>
+</div>
+<div id="adWorksheet">&nbsp;</div>
+
+#TEMPLATE ad_camp_list
+<h3>Campaigns Management</h3>
+<p><small>Click on text to edit, click on lamp icon to change status.</small></p>
+<p>[<a href="javascript:void(0)" onClick="adNewCampaign()">Add New Campaign</a>]</p>
+<form id="adCampNew" name="adCampNew" method="post" action="%SELF" style="padding:1em;display:none" onSubmit="{adInsertCampaign();return false;}"><center><input type="hidden" name="do" value="simplesms-adcampinsert" /><table class="content"><tr><td><input type="text" id="adCampNewName" name="name" size="60" value="" /></td><td><input type="button" name="ok" value="Save" onClick="adInsertCampaign()" /><input type="button" name="cancel" value="Cancel" onClick="adNewCampaignCancel()" /></td></tr></table></center></form>
+<div class="inav">Campaigns %start-%end of %total %back %more</div>
+%list
+<div class="inav">Campaigns %start-%end of %total %back %more</div>
+
+#TEMPLATE ad_camp_more
+| <a href="javascript:void(0)" onClick="adCampPageNext()">More</a>
+#TEMPLATE ad_camp_back
+| <a href="javascript:void(0)" onClick="adCampPageBack()">Back</a>
+#TEMPLATE ad_camp_empty
+<center>No Campaigns yet. Try to add one with link above.</center>
+#TEMPLATE ad_camp_campaign
+<div class="campaign" id="camp%id">
+%campdata
+</div>
+#TEMPLATE ad_camp_campdata
+<table width="100%" border="0" cellpadding="0" cellspacing="4" style="background-color: #eee">
+	<tr>
+		<td width="5%" style="text-align:right">%id.</td>
+		<td width="5%" style="text-align:center" id="campActive%id">%active</td>
+		<td width="85%"><div id="campNoEdit%id"><a href="javascript:void(0)" onClick="adCampEdit('%id')" title="Click to edit" id="campName%id">%name</a></div><div id="campEdit%id" style="display:none"><input type="text" id="campEditName%id" size="60" value="%name" /><input type="button" value="Save" onClick="adCampEditSave('%id')" /><input type="button" value="Cancel" onClick="adCampEditCancel('%id')" /></div></td>
+		<td width="5%" style="text-align:right">
+			<a href="javascript:void(0)" onClick="adCampDelete('%id')" style="color:red">delete</a>
+		</td>
+	</tr>
+</table>
+<ul class="campAds">
+	<li id="campNewAd%id"><small><a href="javascript:void(0)" onClick="adCampNewAd('%id')" style="color:green">+ new advertisement</a></small>
+	<div id="campNewAdForm%id" style="display:none"><input type="text" id="campNewAdName%id" size="60" value="" /><input type="button" value="Save" onClick="adCampNewAdSave('%id')" /><input type="button" value="Cancel" onClick="adCampNewAdCancel('%id')" /></div></li>
+	%ads
+</ul>
+#TEMPLATE ad_camp_ad
+<li id="campAd%id"><div id="adNoEdit%id"><a href="javascript:void(0)" onClick="adAdEdit('%id')" title="Click to edit" id="adName%id">%name</a></div><div id="adEdit%id" style="display:none"><input type="text" id="adEditName%id" size="60" value="%name" /><input type="button" value="Save" onClick="adAdEditSave('%id')" /><input type="button" value="Cancel" onClick="adAdEditCancel('%id')" /> | <a href="javascript:void(0)" onClick="adAdDelete('%id')" style="color:red">delete</a></div></li>
+#TEMPLATE ad_camp_active
+<a href="javascript:void(0)" onClick="adChangeStatus('%id',0)" title="Status: ACTIVE. Click to set inactive."><img class="ic" src="/img/i-on.png" alt="Active" /></a>
+#TEMPLATE ad_camp_inactive
+<a href="javascript:void(0)" onClick="adChangeStatus('%id',1)" title="Status: INACTIVE. Click to set active."><img class="ic" src="/img/i-off.png" alt="Inactive" /></a>
+#TEMPLATE ad_map_list
+<table class="imsg" width="100%">%list</table>
+#TEMPLATE ad_map_serv
+<tr>
+	<th width="5%" style="text-align:left">#%id</th>
+	<th width="60%" style="text-align:left">%sn - %name</th>
+	<th width="35%" style="text-align:right">
+		<select name="selServ%id" id="selServ%id" onChange="adMapServ('%id')">%options</select>
+	</th>
+</tr>
+%topics
+#TEMPLATE ad_map_topic
+<tr>
+	<td width="5%" style="text-align:left">#%id</td>
+	<td width="60%" style="text-align:left">%name</td>
+	<td width="35%" style="text-align:right">
+		<select name="selTopic%id" id="selTopic%id" onChange="adMapTopic('%id')">%options</select>
+	</td>
+</tr>

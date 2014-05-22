@@ -1,0 +1,71 @@
+#!/bin/sh
+#
+# nibelite.simplesms	Nibelite SimpleSMS application
+#
+# chkconfig: - 90 10
+# description:	multi-line \
+#		description \
+#		of the service.
+# processname: nibelite.simplesms
+# config: /opt/nibelite/applications/simplesms/simplesms.conf
+# pidfile: /var/run/NetSDS/nibelite.simplesms.pid
+
+# Do not load RH compatibility interface.
+WITHOUT_RC_COMPAT=1
+
+# Source function library.
+. /etc/init.d/functions
+
+PIDFILE=/var/run/NetSDS/nibelite.simplesms.pid
+LOCKFILE=/var/lock/subsys/nibelite.simplesms
+RETVAL=0
+
+start()
+{
+	/opt/nibelite/applications/simplesms/simplesms.pl --daemon --name nibelite.simplesms
+}
+
+stop()
+{
+	kill `cat $PIDFILE`
+}
+
+restart()
+{
+	stop
+	start
+}
+
+
+# See how we were called.
+case "$1" in
+	start)
+		start
+		;;
+	stop)
+		stop
+		;;
+	restart)
+		stop
+		start
+		;;
+	condstop)
+		if [ -e "$LOCKFILE" ]; then
+			stop
+		fi
+		;;
+	condrestart)
+		if [ -e "$LOCKFILE" ]; then
+			restart
+		fi
+		;;
+	status)
+		status --pidfile "$PIDFILE" --expect-user root -- template
+		RETVAL=$?
+		;;
+	*)
+		msg_usage "${0##*/} {start|stop|restart|condstop|condrestart|status}"
+		RETVAL=1
+esac
+
+exit $RETVAL

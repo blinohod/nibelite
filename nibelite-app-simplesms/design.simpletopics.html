@@ -1,0 +1,188 @@
+#TEMPLATE simpletopics_table
+<p>
+Topics
+</p>
+
+<table class=content width=100%>
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Keyword</th>
+<th>Class</th>
+<th>Description</th>
+<th>Manage content</th>
+</tr>
+%rows
+</table>
+
+#TEMPLATE simplesms_empty
+<tr><td colspan="2">No SMS services found.</td></tr>
+
+#TEMPLATE simpletopics_row
+<style type="text/css">
+tr.style_f td {
+	background: #eeeeee;
+}
+</style>
+
+<tr class="style_%active">
+<form method="POST" action="%script">
+<input type='hidden' name='do' value='update'>
+<input type='hidden' name='id' value='%id' id='id'>
+
+<td>%id</td>
+<td>%name</td>
+</tr>
+<tr>
+<td>%keyword</td>
+<td>%class</td>
+<td>%description</td>
+<td><a href='%script?do=simplesms-contentshow&srvid=%id'>Manage Content</a></td>
+
+</form>
+</tr>
+
+#TEMPLATE simplesms_edit
+<p>Here you can edit service information.</p>
+
+<table class=content width=80%>
+	<form method="POST" action="%script">
+		<input type='hidden' name='do' value='%do'>
+		<input type='hidden' name='id' value='%id' id='id'>
+		<tr><th>Paramter</th><th>Value</th></tr>
+		<tr><td>Service ID</td><td>%id</td></tr>
+		<tr><td>Service name</td><td><input type="text" class="simplesms_input" size="6" name="name" value="%name"></td></tr>
+		<tr><td>Short Code</td><td><input type="text" class="simplesms_input" size="6" name="sn" value="%sn"></td></tr>
+		<tr><td>Keyword (regular expression)</td><td><input type="text" class="simplesms_input" size="60" name="keyword" value="%keyword" maxlength='250'></td></tr>
+		<tr><td>Help message</td><td><input type="text" class="simplesms_input" size="60" name="msg_help" value="%msg_help" maxlength='250'></td></tr>
+		<tr><td>Description</td><td><textarea class="simplesms_input" cols="40" rows="3" name="descr">%descr</textarea></td>
+		<tr><td>Active: </td><td><input type="checkbox" class="news_input" name="active" %active ></td></tr>
+		<tr><td>Class: </td><td>%[class]</td></tr>
+
+	<tr><td><input type="submit" value=" %submit "></td>
+		  <td><input type="button" value=" %delete " onclick="onClick_deleteSimpleSMS()"></td>
+	</tr>
+</form>
+</table>
+<script type='text/javascript'> 
+	function onClick_deleteSimpleSMS() { 
+		var c = confirm("Are you sure? (Y/N)");
+		if (c == true) { 
+			var id = document.getElementById('id').value;
+			if (id == 0) { 
+				alert("Impossible to remove unexistent record!");
+				return;
+			}
+			window.location.assign('./simplesms.php?do=simplesms-delete&id='+id); 
+		}
+  }
+</script>
+<table class='content' width='80%'>
+<tr>
+<th>Topic ID</th>
+<th>Name</th>
+<th>Description</th>
+<th>Keyword</th>
+<th>Template</th>
+<th>Action</th>
+</tr>
+
+%simplesms_cmd_rows
+%simplesms_topic_add_form 
+</table>
+
+#TEMPLATE simplesms_topic_add_form
+<style type="text/css">
+tr.style_f td {
+	background: #eeeeee;
+}
+</style>
+
+<tr> 
+<form action='simplesms.php' method='post'> 
+<input type='hidden' name='do' value='simplesms-topicadd'> 
+<input type='hidden' name='service_id' value='%service_id'> 
+<td>&nbsp;</td> 
+<td><input type='text' name='name' value='' maxlength='32' size='16'></td>
+<td><input type='text' name='descr' value='' maxlength='128' size='32'></td>
+<td><input type='text' name='keyword' value='' maxlength='128' size='32'></td>
+<td><input type='submit' value='Add new topic'></td>
+<td>&nbsp;</td> 
+</td>
+</form> 
+</tr>
+
+<tr>
+<th>Topic ID</th>
+<th>Name</th>
+<th>Description</th>
+<th>Keyword</th>
+<th>Template</th>
+<th>Action</th>
+</tr>
+
+#TEMPLATE simplesms_cmd_empty
+<tr><td colspan="3">No topics defined for this service.</td></tr>
+
+#TEMPLATE simplesms_cmd_row 
+<tr class="style_%active">
+	<td> %topic_id </td>
+	<td><a href='./simplesms.php?do=simplesms-topicedit&id=%topic_id&service_id=%service_id'>%name</a></td>
+	<td>%descr</td>
+	<td>%keyword</td>
+	<td>%template</td>
+	<td> 
+		<a href='./simplesms.php?do=simplesms-topicedit&id=%topic_id&service_id=%service_id'>Edit topic</a><br> 
+		<a onClick='return confirm("Are you sure?");' href='./simplesms.php?do=simplesms-topicdelete&id=%topic_id&service_id=%service_id'>Delete topic</a>
+		</td>
+</tr>
+
+#TEMPLATE simplesms_topic_edit_noid 
+<b>No topic id defined!</b>
+
+#TEMPLATE simplesms_topic_edit 
+<table class='content' width='100%'>
+<form action='./simplesms.php' method='post'> 
+<input type='hidden' name='do' value='simplesms-topicupdate'>
+<input type='hidden' name='id' value='%topic_id'> 
+<input type='hidden' name='service_id' value='%service_id'>	
+
+<tr><th>Parameter</th><th>Value</th></tr>
+
+<tr><td>ID</td><td>%topic_id</td></tr>
+<tr><td>Name</td><td><input type='text' width='32' maxlength='64' name='name' id='name' value='%name'></td></tr>
+<tr><td>Keyword</td><td><input type='text' width='64' maxlength='250' name='keyword' id='keyword' value='%keyword'></td></tr>
+<tr><th>Default command</th>
+<td> <input type='checkbox' name='is_default' id='is_default' %is_default> </td>
+</tr>
+	<tr> 
+		<td> <input type='submit' value='%submit' onClick='return onClick_SaveCommand();'> </td>
+		<td> <input type='button' value='delete' disabled ></td>
+	</tr>
+  </form>		
+</table>
+%simplesms_answer_list
+<script type='text/javascript'>
+	function onClick_SaveCommand() {
+		var c = document.getElementById('is_default').checked; 
+		if (c == true) {
+			var d = confirm("Are you sure to make this topic default ?"); 
+      if (d == true)
+			{
+				return true; 
+			}
+			return false;
+		}
+		return true;
+	}
+</script>
+
+#TEMPLATE simplesms_content_show
+<p>Edit content</p>
+
+<table class='content' width='100%'>
+<tr>
+	<th></th>
+</tr>
+</table>
+
