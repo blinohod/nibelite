@@ -1,0 +1,901 @@
+#TRANSLATE smsnews_title SMS-рассылки
+#TRANSLATE smsnews_head Управление SMS-рассылками
+
+#TEMPLATE smsnews_default
+<h1>Система управления SMS-рассылками</h1>
+<p>Система управления информационными SMS-рассылками.</p>
+
+#TEMPLATE smsnews_menu
+<a href="%SELF?do=smsnews-messages">Сообщения</a>
+- <a href="%SELF?do=smsnews-reqlist">Запросы клиентов</a>
+- <a href="%SELF?do=smsnews-topiclist">Пакеты новостей</a>
+- <a href="%SELF?do=smsnews-catlist">Категории подписчиков</a>
+- <a href="%SELF?do=smsnews-subslist">Подписчики</a>
+- <a href="%SELF?do=smsnews-events">События</a>
+- <a href="%SELF?do=smsnews-stat">Статистика</a>
+
+#TEMPLATE smsnews_table
+<table class=content width=100%>
+	<tr>
+		<th>ID</th>
+		<th>Описание</th>
+		<th>Ключевое слово</th>
+		<th>Активен</th>
+		<th>Тип сервиса</th>
+	</tr>
+	%rows
+</table>
+
+#TEMPLATE smsnews_empty
+<tr><td colspan="2">Не найдено ни одного СМС-сервиса.</td></tr>
+
+#TEMPLATE smsnews_row
+<tr>
+	<td>%id</td>
+	<td><a href='%SELF?do=smsnews-edit&id=%id'>%description</a></td>
+	<td>%keyword</td>
+	<td>%active</td>
+	<td>%service_type</td>
+</tr>
+
+#TEMPLATE smsnews_send_form
+<table class=content width=100%>
+	<form method="POST" action="%SELF">
+		<input type='hidden' name='do' value='%do'>
+		<input type='hidden' name='id' value='%id' id='id'>
+	<tr><td>ID</td><td>%id</td>
+		<tr><td>Описание</td><td><textarea class="smsnews_input" cols="80" rows="5" name="description">%description</textarea></td>
+		<tr><td>Ключевое слово</td><td><input type="text" class="smsnews_input" size="40" name="keyword" value="%keyword" maxlength='250'></td></tr>
+		<tr><td>Активация:</td><td><input type="checkbox" class="news_input" name="active" %active ></td></tr>
+	<tr><td>Тип сервиса</td><td>%[service_type]</td></tr>		
+
+	<tr>
+		<td><input type="submit" value=" %submit "></td>
+	  <td><input type="button" value=" %delete " onclick="onClick_deleteSimpleSMS()"></td>
+	</tr>
+</form>
+</table>
+
+#TEMPLATE smsnews_topic_list
+<p>Настройка тематических категорий для рассылок.</p>
+<script type="text/javascript"><!--
+
+	$(document).ready(function() {
+		$('#addgroup').click(function() {
+			newName = prompt('Введите название новой группы','Новая группа');
+			if( newName ) {
+				$.post('%SELF', {
+					'do': 'smsnews-topicaddgroup',
+					'name': newName
+				}, function(data) {
+					$('#topiclist').append(data);
+				});
+			}
+			return false;
+		});
+	});
+	
+	function groupRename(groupId) {
+		oldName = $('#groupname'+groupId).html();
+		newName = prompt('Новое название группы',oldName);
+		if( newName ) {
+			if( newName != oldName ) {
+				$.post('%SELF', {
+					'do': 'smsnews-topicrenamegroup',
+					'id': groupId,
+					'name': newName
+				}, function(data) {
+					$('#group'+groupId).replaceWith(data);
+				});
+			}
+		}
+		return false;
+	}
+	
+	function groupDelete(groupId) {
+		groupName = $('#groupname'+groupId).html();
+		if( confirm('Вы действительно хотите удалить группу "'+groupName+'" ?') ) {
+			$.post('%SELF', {
+				'do': 'smsnews-topicdeletegroup',
+				'id': groupId
+			}, function(data) {
+				if( data == 'DELETED' ) {
+					$('#group'+groupId).remove();
+				} else if( data == 'NOT EMPTY' ) {
+					alert('Группа "'+groupName+'" содержит категории и не может быть удалена.');
+				} else if( data == 'ERROR' ) {
+					alert('Невозможно выполнить операцию.');
+				}
+			});
+		}
+		return false;
+	}
+	
+	function topicAddForm(groupId) {
+		$('.gt'+groupId).last().after('<tr id="topicAdd"><td>+</td><td colspan="3"><form id="topicAddForm" method="post" action="%SELF">Код: <input type="text" name="code" size="4" /> Название: <input type="text" name="topic" size="30" /><input type="hidden" name="do" value="smsnews-topicadd" /><input type="hidden" name="group_id" value="'+groupId+'" /> <input type="button" name="ok" value="OK" onClick="topicAddPost(\''+groupId+'\');" /></form></td></tr>');
+		return false;
+	}
+	
+	function topicAddPost(groupId) {
+		$.post('%SELF', $('#topicAddForm').serialize(), function(data) {
+			if( data == 'DATA ERROR' ) {
+				alert('Некорректные данные категории.');
+			} else if( data == 'ERROR' ) {
+				alert('Невозможно выполнить операцию.');
+			} else {
+				$('#topicAdd').replaceWith(data);
+				topicSort(groupId);
+			}
+		});
+		return false;
+	}
+	
+	function topicSort(groupId) {
+		var el = [];
+		$('.gt'+groupId).each(function(i) {
+			id = $(this).find('.id').first().html();
+			prio = $(this).find('.prio').first().html();
+			topic = $(this).find('.topic').first().html();
+			el[i] = { 'id': id, 'prio': prio, 'topic': topic };
+		});
+		
+		if( el.length ) {
+			el.sort(function(a,b) {
+				if( a.prio != b.prio ) {
+					return b.prio - a.prio;
+				} else if(a.topic > b.topic) {
+					return -1;
+				} else if(a.topic < b.topic) {
+					return 1;
+				} else {
+					return 0;
+				}
+			});
+			for( i=0; i<el.length; i++) {
+				row = $('#topic'+el[i].id).detach();
+				$('#group'+groupId).after(row);
+			}
+		}
+	}
+
+	function topicEditForm(id) {
+		$.post('%SELF',{
+			'do': 'smsnews-topicedit',
+			'id': id
+		}, function(data){
+			$('#topic'+id).replaceWith(data);
+		});
+		return false;
+	}
+
+	function topicEditPost(id) {
+		$.post('%SELF', $('#topicEditForm'+id).serialize(), function(data) {
+			$('#topicEdit'+id).replaceWith(data);
+			groupId = $('#topic'+id).find('.grp').first().html();
+			if( groupId ) {
+				topic = $('#topic'+id).detach();
+				$('#group'+groupId).after(topic);
+				topicSort(groupId);
+			}
+		});
+		return false;
+	}
+	
+	function topicDelete(id) {
+		topicName = $('#topic'+id).find('.topic').first().html();
+		if( confirm('Вы действительно хотите удалить категорию "'+topicName+'" ?') ) {
+			$.post('%SELF', {
+				'do': 'smsnews-topicdelete',
+				'id': id
+			}, function(data) {
+				if( data == 'DELETED' ) {
+					$('#topic'+id).remove();
+				} else if( data == 'ERROR' ) {
+					alert('Невозможно выполнить операцию.');
+				}
+			});
+		}
+		return false;
+	}
+
+	function topicUp(id,groupId) {
+		prio = $('#topic'+id).find('.prio').first().html();
+		prio--;
+		$.post('%SELF', {
+			'do': 'smsnews-topicprio',
+			'id': id,
+			'prio': prio
+		}, function(data) {
+			if( data == 'OK' ) {
+				$('#topic'+id).find('.prio').first().html(prio);
+				topicSort(groupId);
+			}
+		});
+	}
+	
+	function topicDown(id,groupId) {
+		prio = $('#topic'+id).find('.prio').first().html();
+		prio++;
+		$.post('%SELF', {
+			'do': 'smsnews-topicprio',
+			'id': id,
+			'prio': prio
+		}, function(data) {
+			if( data == 'OK' ) {
+				$('#topic'+id).find('.prio').first().html(prio);
+				topicSort(groupId);
+			}
+		});
+	}
+
+// --></script>
+
+<p><a href="javascript:void()" id="addgroup"><img src="img/i-add.png" alt="+" border="0" style="vertical-align:middle;" /> добавить группу пакетов</a></p>
+<table class="content" width="100%" id="topiclist">
+<tr><th>ID</th><th>Код</th><th width="100%">Название</th><th>Функции</th></tr>
+%rows
+<tr></tr>
+</table>
+
+#TEMPLATE smsnews_topic_group
+<tr id="group%id" class="gt%id"><td>%id</td><td colspan="2"><b id="groupname%id">%group</b><br><small><a href="javascript:void()" title="добавить категорию" onClick="topicAddForm('%id');">+ добавить категорию</a></small></td><td>
+<a href="javascript:void()" title="переименовать группу категорий" onClick="groupRename('%id');"><img src="img/i-edit.png" alt="edit" border="0" /></a>&nbsp;<a href="javascript:void()" title="удалить группу категорий" onClick="groupDelete('%id');"><img src="img/i-del.png" alt="x" border="0" /></a>
+</td></tr>
+
+#TEMPLATE smsnews_topic_row
+<tr id="topic%id" class="gt%group_id"><td><span class="id">%id</span>&nbsp;<span class="prio" style="display:none">%priority</span><span class="grp" style="display:none">%group_id</span></td><td>%code</td><td class="topic">%topic</td><td>
+<a href="javascript:void()" title="редактировать категорию" onClick="topicEditForm('%id');"><img src="img/i-edit.png" alt="edit" border="0" /></a>&nbsp;<a href="javascript:void()" title="удалить категорию" onClick="topicDelete('%id');"><img src="img/i-del.png" alt="x" border="0" /></a>&nbsp;&nbsp;<a href="javascript:void()" title="выше" onClick="topicUp('%id','%group_id');"><img src="img/i-up.png" alt="up" border="0" /></a>&nbsp;<a href="javascript:void()" title="ниже" onClick="topicDown('%id','%group_id');"><img src="img/i-down.png" alt="down" border="0" /></a>
+</td></tr>
+
+#TEMPLATE smsnews_topic_edit
+<tr id="topicEdit%id"><td>%id</td><td colspan="3"><form id="topicEditForm%id" method="post" action="%SELF">Код: <input type="text" name="code" size="4" value="%code" /> Название: <input type="text" name="topic" size="30" value="%topic" /> Группа: %sel_group<input type="hidden" name="do" value="smsnews-topicupdate" /><input type="hidden" name="id" value="%id" /><input type="hidden" name="prio" value="%prio" /><input type="button" name="ok" value="OK" onClick="topicEditPost('%id');" /></form></td></tr>
+
+#TEMPLATE smsnews_topic_rowerror
+<tr><td colspan="4" style="text-align:center; color:red">Невозможно выполнить данную операцию</td></tr>
+
+#TEMPLATE smsnews_cat_list
+<script type="text/javascript"><!--
+
+	function catNew() {
+		$('#catList').prepend(
+			'<li id="catNew" style="display:none">' 
+			+'<form id="catAddForm" method="post" action="%SELF"><dl>'
+			+'<dt>Категория:</dt><dd><input type="text" name="name" size="30" style="width:100%" /></dd>'
+			+'<dt>Описание:</dt><dd><textarea name="descr" cols="40" rows="4" style="width:100%"></textarea></dd>'
+			+'<dd><input type="button" name="ok" value="OK" onClick="catNewPost();" />'
+			+'&nbsp;<input type="button" name="cancel" value="Отмена" onClick="catNewCancel();" /></dd>'
+			+'</dl>'
+			+'<input type="hidden" name="do" value="smsnews-catadd" />'
+			+'</form></li>');
+		$('#catNew').slideDown();
+		$('#catNewLink').slideUp('fast');
+		return false;
+	}
+	
+	function catNewPost() {
+		$.post('%SELF', $('#catAddForm').serialize(), function(data) {
+			if( data == 'DATA ERROR' ) {
+				alert('Требуется ввести название категории.');
+			} else if( data == 'DUPLICATE' ) {
+				alert('Категория с таким названием уже есть.');
+			} else if( data == 'ERROR' ) {
+				alert('Невозможно выполнить операцию.');
+			} else {
+				$('#catNew').replaceWith(data);
+				catSort();
+				$('#catNewLink').slideDown('fast');
+			}
+		});
+		return false;
+	}
+	
+	function catNewCancel() {
+		$('#catNew').slideUp('fast', function() {
+			$('#catNew').remove();
+		});
+		$('#catNewLink').slideDown('fast');
+		return false;
+	}
+	
+	function catEditForm( id ) {
+		catName = $('#cat'+id).find('.catName').first().html();
+		catDescr = $('#cat'+id).find('.catDescr').first().html();
+		$('#cat'+id).after(
+			'<li id="catEdit'+id+'" style="display:none">'
+			+'<form id="catEditForm'+id+'" method="post" action="%SELF"><dl>'
+			+'<dt>Категория:</dt><dd><input type="text" name="name" size="30" style="width:100%" value="'+catName+'" /></dd>'
+			+'<dt>Описание:</dt><dd><textarea name="descr" cols="40" rows="4" style="width:100%">'+catDescr+'</textarea></dd>'
+			+'<dd><input type="button" name="ok" value="OK" onClick="catEditPost(\''+id+'\');" />'
+			+'&nbsp;<input type="button" name="cancel" value="Отмена" onClick="catEditCancel(\''+id+'\');" /></dd>'
+			+'</dl>'
+			+'<input type="hidden" name="do" value="smsnews-catupdate" />'
+			+'<input type="hidden" name="id" value="'+id+'" />'
+			+'</form></li>');
+		$('#cat'+id).slideUp('fast');
+		$('#catEdit'+id).slideDown();
+		return false;
+	}
+	
+	function catEditPost( id ) {
+		$.post('%SELF', $('#catEditForm'+id).serialize(), function(data) {
+			if( data == 'DATA ERROR' ) {
+				alert('Требуется ввести название категории.');
+			} else if( data == 'DUPLICATE' ) {
+				alert('Категория с таким названием уже есть.');
+			} else if( data == 'ERROR' ) {
+				alert('Невозможно выполнить операцию.');
+			} else {
+				$('#catEdit'+id).slideUp('fast', function() {
+					$('#catEdit'+id).remove();
+				});
+				$('#cat'+id).slideDown('fast');
+				$('#cat'+id).replaceWith(data);
+				catSort();
+			}
+		});
+		return false;
+	}
+	
+	function catEditCancel( id ) {
+		$('#catEdit'+id).slideUp('fast', function() {
+			$('#catEdit'+id).remove();
+		});
+		$('#cat'+id).slideDown('fast');
+		return false;
+	}
+	
+	function catDelete( id ) {
+		catName = $('#cat'+id).find('.catName').first().html();
+		if( confirm('Вы действительно хотите удалить категорию подписчиков "'+catName+'" ?') ) {
+			$.post('%SELF', {
+				'do': 'smsnews-catdelete',
+				'id': id
+			}, function(data) {
+				if( data == 'DELETED' ) {
+					$('#cat'+id).slideUp('slow', function() {
+						$(this).remove();
+					});
+				} else if( data == 'NOT EMPTY' ) {
+					alert('Нельзя удалять категорию "'+catName+'", пока в ней есть подписчики.');
+				} else if( data == 'ERROR' ) {
+					alert('Невозможно выполнить операцию.');
+				}
+			});
+		}
+		
+		return false;
+	}
+	
+	function catSort() {
+		var el = [];
+		$('.catItem').each(function(i) {
+			id = $(this).find('.catId').first().html();
+			name = $(this).find('.catName').first().html();
+			el[i] = { 'id': id, 'name': name };
+		});
+		
+		if( el.length ) {
+			el.sort(function(a,b) {
+				if(a.name > b.name) {
+					return -1;
+				} else if(a.name < b.name) {
+					return 1;
+				} else {
+					return 0;
+				}
+			});
+			for( i=0; i<el.length; i++) {
+				row = $('#cat'+el[i].id).detach();
+				$('#catList').prepend(row);
+			}
+		}
+	}
+
+// --></script>
+<center><div style="width:50%;text-align:left">
+<h3>Настройка категорий подписчиков</h3>
+<p id="catNewLink"><a href="javascript:void()" onClick="catNew();"><img src="img/i-add.png" alt="+" border="0" style="vertical-align:middle;" /> добавить категорию подписчиков</a></p>
+<ul id="catList" class="itemlist" style="list-style:none">
+%items
+</ul></div></center>
+
+#TEMPLATE smsnews_cat_list_item
+<li id="cat%id" class="catItem" style="clear:right;margin:0.25em;border:1px solid #ccc;padding:0.5em">
+<div class="catFunc" style="float:right;width:40px;margin:0 0 0.5em 1em;text-align:center;"><a href="javascript:void()" title="редактировать категорию" onClick="catEditForm('%id');"><img src="img/i-edit.png" alt="edit" border="0" /></a>&nbsp;<a href="javascript:void()" title="удалить категорию" onClick="catDelete('%id');"><img src="img/i-del.png" alt="x" border="0" /></a><br />Id:&nbsp;<span class="catId" style="color:#999">%id</span></div>
+<div class="catName" style="font-weight:bold">%category</div>
+<div class="catDescr">%descr</div>
+</li>
+
+#TEMPLATE smsnews_subscribers
+<script type="text/javascript"><!--
+
+	function subsLoad() {
+		$('#results').fadeOut('fast', function() {
+			$.post('%SELF', $('#filterForm').serialize(), function(data) {
+				$('#results').html(data);
+				$('#results').fadeIn();
+			});
+		});
+		return false;
+	}
+	
+	function subsWayBack() {
+		p = $('#filterPage').val();
+		if( p > 0 ) {
+			$('#filterPage').val(p-1);
+			subsLoad();
+		}
+		return false;
+	}
+	
+	function subsWayForward() {
+		p = $('#filterPage').val();
+		$('#filterPage').val(p+1);
+		subsLoad();
+		return false;
+	}
+	
+	function subsToggleStatus( id ) {
+		$.post('%SELF', {
+			'id': id,
+			'do': 'smsnews-subsuserstatus'
+		}, function(data) {
+			$('#subsStatus'+id).html(data);
+		});
+		return false;
+	}
+
+	function subsEditForm( id ) {
+		$.post('%SELF', {
+			'id': id,
+			'do': 'smsnews-subsusereditform'
+		}, function(data) {
+			$('#subscriber'+id).fadeOut('fast',function() {
+				$('#subscriber'+id).after(data);
+				$('#dateTestUntil'+id).datepicker({dateFormat: 'dd.mm.yy'});
+			});
+		});
+		return false;
+	}
+	
+	function subsSubscribeForm( id ) {
+		if( $('#formSubscribe'+id).length ) {
+			$('#formSubscribe'+id).fadeOut('fast',function() {
+				$('#formSubscribe'+id).fadeIn('fast');
+			});
+			return false;
+		}
+		$.post('%SELF', {
+			'id': id,
+			'do': 'smsnews-subssubscribeform'
+		}, function(data) {
+			re = /^ERROR/;
+			if( re.test(data) ) {
+				alert('Невозможно выполнить операцию.');
+			} else {
+				$('#subscriber'+id).after(data);
+				$('#dateStart'+id).datepicker({dateFormat: 'dd.mm.yy'});
+				$('#dateStop'+id).datepicker({dateFormat: 'dd.mm.yy'});
+			}
+		});
+		return false;
+	}
+	
+	function subsSubscribeCancel( id ) {
+		$('#subscribe'+id).fadeOut('fast',function() {
+			$('#subscribe'+id).remove();
+		});
+		return false;
+	}
+
+	function subsSubscribePost( id ) {
+		$('#subscribe'+id).fadeOut('fast', function() {
+			$.post('%SELF', $('#formSubscribe'+id).serialize(), function(data) {
+				re = /^ERROR/;
+				if( re.test(data) ) {
+					alert(data);
+					$('#subscriber'+id).fadeIn();
+				} else {
+					$('#subscribe'+id).replaceWith(data);
+				}
+				/* $('#subscriber'+id).fadeIn(); */
+			});
+		});
+		return false;
+	}
+	
+	function subsEditUpdate( id ) {
+		$('#editForm'+id).fadeOut('fast', function() {
+			$.post('%SELF', $('#editForm'+id).serialize(), function(data) {
+				re = /^ERROR/;
+				if( re.test(data) ) {
+					alert(data);
+					$('#editForm'+id).fadeIn();
+				} else {
+					$('#subscriber'+id).html(data);
+					$('#subscriber'+id).fadeIn();
+					$('#editForm'+id).remove();
+				}
+			});
+		});
+		return false;
+	}
+
+	function subsEditCancel( id ) {
+		$('#editForm'+id).fadeOut('fast',function() {
+			$('#editForm'+id).remove();
+			$('#subscriber'+id).fadeIn('fast');
+		});
+		return false;
+	}
+	
+	function subsSubscreditForm( id ) {
+		if( $('#formSubscredit'+id).length ) {
+			$('#formSubscredit'+id).fadeOut('fast',function() {
+				$('#formSubscredit'+id).fadeIn('fast');
+			});
+			return false;
+		}
+		$.post('%SELF', {
+			'id': id,
+			'do': 'smsnews-subssubscreditform'
+		}, function(data) {
+			re = /^ERROR/;
+			if( re.test(data) ) {
+				alert('Невозможно выполнить операцию.');
+			} else {
+				$('#sub'+id).after(data);
+				
+				st = $('#sseStatus'+id).val();
+				$('#sseStatusSel'+id).val(st).change();
+				
+				$('#sub'+id).fadeOut('fast');
+				
+				$('#dateStartEdit'+id).datepicker({dateFormat: 'dd.mm.yy'});
+				$('#dateStopEdit'+id).datepicker({dateFormat: 'dd.mm.yy'});
+			}
+		});
+		return false;
+	}
+	
+	function subsSubscreditCancel( id ) {
+		$('#subscredit'+id).fadeOut('fast',function() {
+			$('#subscredit'+id).remove();
+			$('#sub'+id).fadeIn('fast');
+		});
+		return false;
+	}
+
+	function subsSubscreditPost( id ) {
+		$('#subscredit'+id).fadeOut('fast', function() {
+			$.post('%SELF', $('#formSubscredit'+id).serialize(), function(data) {
+				re = /^ERROR/;
+				if( re.test(data) ) {
+					alert(data);
+					$('#subscredit'+id).fadeIn();
+				} else {
+					$('#subscredit'+id).remove();
+					$('#sub'+id).fadeIn('fast',function() {
+						$('#sub'+id).replaceWith(data);
+					});
+				}
+				/* $('#subscriber'+id).fadeIn(); */
+			});
+		});
+		return false;
+	}
+
+	function subsAddForm() {
+		$('#addForm').fadeIn('fast',function() {
+			$('#addHandle').fadeOut('fast');
+		});
+		return false;
+	}
+	
+	function subsAddCancel() {
+		$('#addForm').fadeOut('fast',function() {
+			$('#addHandle').fadeIn('fast');
+		});
+		return false;
+	}
+
+	function subsAddPost( id ) {
+		$('#addForm').fadeOut('fast', function() {
+			$.post('%SELF', $('#addForm').serialize(), function(data) {
+				re = /^ERROR/;
+				if( re.test(data) ) {
+					alert(data);
+					$('#addForm').fadeIn();
+				} else {
+					$('#addForm').fadeOut('fast',function() {
+						$('#addHandle').fadeIn('fast');
+					});
+					subsLoad();
+				}
+			});
+		});
+		return false;
+	}
+	
+	$(document).ready(function() {
+		$('#newTestUntil').datepicker({dateFormat: 'dd.mm.yy'});
+		subsLoad();
+	});
+
+// --></script>
+<center>
+<h3>Управление подпиской</h3>
+<form id="filterForm" method="post" action="%SELF" style="margin:0.5em">
+<table border="0" cellspacing="10" style="text-align:left;">
+	<tr>
+		<td>Категория<br/>%select_cat</td>
+		<td>Состояние<br/><select name="status"><option value="" selected="1">---</option><option value="ACTIVE">Подключен</option><option value="INACTIVE">Заблокирован</option></select></td>
+		<td>Подписан&nbsp;на<br/>%select_topic</td>
+		<td>Статус&nbsp;подписки<br/><select name="sub_status"><option value="" selected="1">---</option><option value="ACTIVE">Работает</option><option value="INACTIVE">Остановлена</option><option value="PENDING">Заказана</option></select></td>
+		<td rowspan="2"><input type="button" name="ok" value="Выбрать" onClick="subsLoad();" /></td>
+	</tr>
+	<tr>
+		<td colspan="2"><input type="text" name="msisdn" size="16" title="Введите любую часть телефонного номера для поиска. Имеют значение только цифры." style="width:100%" /><br/>Телефон</td>
+		<td colspan="2"><input type="text" name="name" size="20" title="Введите любую часть Ф.И.О. для поиска" style="width:100%" /><br/>Ф.И.О.</td>
+	</tr>
+</table>
+<input type="hidden" name="do" value="smsnews-subsresult" />
+<input type="hidden" name="page" id="filterPage" value="0" />
+</form>
+</center>
+<div id="addHandle" style="margin:0.5em 20%;text-align:center"><a href="javascript:void();" onClick="subsAddForm();"><img src="img/i-add.png" alt="+" border="0" style="vertical-align:middle" /> добавить подписчика</a></div>
+<form style="margin:0.5em 20%;padding:0.5em;border:1px solid #ccc;display:none" method="post" action="%SELF" id="addForm">
+	<table width="100%" border="0" cellspacing="8">
+		<tr><td colspan="3"><h3>Добавление нового подписчика</h3></td></tr>
+		<tr>
+			<td>Телефон<br/><input type="text" size="20" name="msisdn" value="" /></td>
+			<td>Категория<br/>%select_scat</td>
+			<td>Тестовый&nbsp;период<br/>до&nbsp;<input disabled type="text" size="10" name="test_until" value="" id="newTestUntil" /></td>
+		</tr>
+		<tr>
+			<td colspan="3">Ф.И.О.<br/>
+				<input type="text" name="name" value="" style="width:90%" />
+			</td>
+		</tr>
+		<tr>
+			<td colspan="3">Комментарии<br/>
+				<textarea cols="40" rows="5" style="width:90%" name="comments"></textarea>
+			</td>
+		</tr>
+		<tr>
+			<td colspan="3" style="text-align:right">
+				<input type="button" name="revert" value="Отмена" onClick="subsAddCancel();" />
+				<input type="button" name="save" value="Сохранить" onClick="subsAddPost();" />
+			</td>
+		</tr>
+	</table>
+	<input type="hidden" name="do" value="smsnews-subsuseradd" />
+</form>
+<div id="results" style="margin:0.5em 20%;padding:0.5em;border:1px solid #ccc"><img src="img/loadbar.gif" alt="Загружается..." /></div>
+
+#TEMPLATE smsnews_subscribers_empty
+<center>Не найдены подписки с заданными параметрами.</center>
+
+#TEMPLATE smsnews_subscribers_list
+%way_back
+%way_forward
+<div style="margin:1em 40px;text-align:center">%start - %end (найдено: %total)</div>
+<br clear="both" />
+%items
+<br clear="both" />
+%way_back
+%way_forward
+<div style="margin:1em 40px;text-align:center">%start - %end (найдено: %total)</div>
+<br clear="both" />
+
+
+#TEMPLATE smsnews_subscribers_back
+<div style="width:38px;float:left;text-align:left"><a href="javascript:void()" onClick="subsWayBack();" title="предыдущие"><img src="img/b-back.png" alt="предыдущие" border="0" /></a></div>
+
+#TEMPLATE smsnews_subscribers_forward
+<div style="width:38px;float:right;text-align:right"><a href="javascript:void()" onClick="subsWayForward();" title="следующие"><img src="img/b-forward.png" alt="следующие" border="0" /></a></div>
+
+#TEMPLATE subscriber_status_active 
+<img src="img/i-on.png" alt="Подключен" title="Подключен. Нажмите, чтобы заблокировать." border="0" style="vertical-align:middle" />
+#TEMPLATE subscriber_status_inactive 
+<img src="img/i-off.png" alt="Заблокирован" title="Заблокирован. Нажмите, чтобы включить." border="0" style="vertical-align:middle" />
+#TEMPLATE smsnews_subscribers_subscriber
+<div id="subscriber%id" style="margin: 0.5em 0 0 0">
+	<div style="background:#ccc;padding:0.25em;margin:0">
+		<div style="margin:0;padding:0;width:20%;float:right;text-align:right">
+			<a href="javascript:void()" onClick="subsEditForm('%id');" title="Редактировать"><img src="img/i-edit.png" alt="Редактировать" border="0" /></a>
+			<a href="javascript:void()" onClick="subsSubscribeForm('%id');" title="Подписать на рассылку"><img src="img/i-add.png" alt="Подписать на рассылку" border="0" /></a>
+		</div>
+		<a href="javascript:void()" onClick="subsToggleStatus('%id');" id="subsStatus%id" style="text-decoration:none;">%status</a>&nbsp;<b class="ssMsisdn">%msisdn</b> [%category] %name
+	</div>
+	<div style="border:1px solid #ccc;padding:0.25em 1em;margin:0">
+		Зарегистрирован: %created, дней активности: %usage_days<br/>
+		%comments
+	</div>
+</div>
+
+#TEMPLATE smsnews_subscribers_edit
+<form style="border:1px solid #ccc;padding:0.25em;margin:0" method="post" action="%SELF" id="editForm%id">
+<table width="100%" border="0" cellspacing="8">
+	<tr>
+		<td>Телефон<br/><input type="text" size="20" name="msisdn" value="%msisdn" /></td>
+		<td>Категория<br/>%select_cat</td>
+		<td>Тестовый&nbsp;период<br/>до&nbsp;<input type="text" size="10" name="test_until" value="%test_until" id="dateTestUntil%id" /></td>
+	</tr>
+	<tr>
+		<td colspan="3">Ф.И.О.<br/>
+			<input type="text" name="name" value="%name" style="width:90%" />
+		</td>
+	</tr>
+	<tr>
+		<td colspan="3">Комментарии<br/>
+			<textarea cols="40" rows="5" style="width:90%" name="comments">%comments</textarea>
+		</td>
+	</tr>
+	<tr>
+		<td colspan="3" style="text-align:right">
+			<input type="button" name="revert" value="Отмена" onClick="subsEditCancel('%id')" />
+			<input type="button" name="save" value="Сохранить" onClick="subsEditUpdate('%id')" />
+		</td>
+	</tr>
+</table>
+<input type="hidden" name="id" value="%id" />
+<input type="hidden" name="do" value="smsnews-subsuserupdate" />
+</form>
+
+#TEMPLATE smsnews_subscribe_form
+<div id="subscribe%subscriber_id" style="border-right:1px solid #ccc;border-bottom:3px double #ccc;border-left:3px double #ccc;padding:0.25em 0.5em;margin:0 0 0 4em">
+	<form id="formSubscribe%subscriber_id" method="post" action="%SELF">
+		<table width="100%" border="0" cellspacing="8">
+			<tr>
+				<td>
+					Статус<br />
+					<select name="status"><option value="ACTIVE" selected="1">Работает</option><option value="INACTIVE">Остановлена</option><option value="PENDING">Заказана</option></select>
+				</td>
+				<td>
+					Рубрика:<br />
+					%select_topic
+				</td>
+				<td>
+					Подписать&nbsp;с&nbsp;по<br/>
+					<input type="text" name="started" value="%started" id="dateStart%subscriber_id" size="10" />
+					<input type="text" name="stopped" value="%stopped" id="dateStop%subscriber_id" size="10" />
+				</td>
+				<td>
+					Короткий&nbsp;номер<br/>
+					<input type="text" name="sn" value="%sn" size="5" />
+				</td>
+			</tr>
+			<tr>
+				<td colspan="4">
+					Комментарий по оплате<br />
+					<input type="text" name="payment" value="" style="width:100%" />
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<input type="button" name="cancel" value="Отмена" onClick="subsSubscribeCancel('%subscriber_id');" />
+				</td>
+				<td colspan="2">&nbsp;</td>
+				<td style="text-align:right">
+					<input type="button" name="ok" value="Подписать" onClick="subsSubscribePost('%subscriber_id');" />
+				</td>
+			</tr>
+		<input type="hidden" name="do" value="smsnews-subscribe" />
+		<input type="hidden" name="subscriber_id" value="%subscriber_id" />
+	</form>
+</div>
+
+#TEMPLATE smsnews_subscribe_editform
+<div id="subscredit%id" style="border-right:1px solid #ccc;border-bottom:3px double #ccc;border-left:3px double #ccc;padding:0.25em 0.5em;margin:0 0 0 4em">
+	<form id="formSubscredit%id" method="post" action="%SELF">
+		<table width="100%" border="0" cellspacing="8">
+			<tr>
+				<td>
+					Статус<br />
+					<select name="status" id="sseStatusSel%id"><option value="ACTIVE">Работает</option><option value="INACTIVE">Остановлена</option><option value="PENDING" selected="1">Заказана</option></select>
+					<input type="hidden" name="setstatus" value="%status" id="sseStatus%id" />
+				</td>
+				<td>
+					Категория<br />
+					%select_topic
+				</td>
+				<td>
+					Подписать&nbsp;с&nbsp;по<br/>
+					<input type="text" name="started" value="%started" id="dateStartEdit%id" size="10" />
+					<input type="text" name="stopped" value="%stopped" id="dateStopEdit%id" size="10" />
+				</td>
+        <td>
+          Короткий&nbsp;номер<br/>
+          <input type="text" name="sn" value="%sn" size="5" />
+        </td>
+			</tr>
+			<tr>
+				<td colspan="4">
+					Комментарий по оплате<br />
+					<input type="text" name="payment" value="%payment" style="width:100%" />
+				</td>
+			</tr>
+			<tr>
+				<td style="text-align:right" colspan="4">
+					<input type="button" name="cancel" value="Отмена" onClick="subsSubscreditCancel('%id');" />
+					<input type="button" name="ok" value="Сохранить" onClick="subsSubscreditPost('%id');" />
+				</td>
+			</tr>
+		</table>
+		<input type="hidden" name="do" value="smsnews-ssupdate" />
+		<input type="hidden" name="id" value="%id" />
+	</form>
+</div>
+
+
+#TEMPLATE ss_active 
+<span style="color:#000099">[работает]</span>
+#TEMPLATE ss_inactive
+<span style="color:#999999">[остановлена]</span>
+#TEMPLATE ss_pending
+<span style="color:#990000">[заказана]</span>
+#TEMPLATE ssu_bad_call 
+Некорректный запрос. 
+#TEMPLATE ssu_bad_date 
+Неправильный формат даты. Должно быть ДД.ММ.ГГГГ.
+#TEMPLATE ssu_no_msisdn 
+Подписчиков без номера не бывает. Введите номер телефона (формат: 380XXXXXXXXX).
+#TEMPLATE ssu_load_error 
+Ошибка обращения к базе данных.
+
+#TEMPLATE smsnews_subscription
+<div id="sub%id" style="border-right:1px solid #ccc;border-bottom:1px solid #ccc;border-left:3px double #ccc;padding:0.25em 0.5em;margin:0 0 0 4em">
+	<div style="margin:0;padding:0;width:20%;float:right;text-align:right">
+		<a href="javascript:void()" onClick="subsSubscreditForm('%id');" title="Редактировать"><img src="img/i-edit.png" alt="Редактировать" border="0" /></a>
+	</div>
+	%status %topic<br/>&nbsp;&nbsp;%started - %stopped %payment
+</div>
+
+#TEMPLATE smsnews_requests
+<div align=center>
+
+	<b>Фильтр поиска запросов от клиентов</b>
+<form action="%SELF" method=GET>
+	<input type=hidden name=do value="smsnews-reqlist">
+<table class=content>
+	<tr>
+		<th>Номер</th>
+		<th>Текст</th>
+		<th>Кол-во</th>
+		<th>Показать!</th>
+	</tr>
+	<tr>
+		<td><input type=text size=16 name="f_msisdn" value="%f_msisdn"></td>
+		<td><input type=text size=16 name="f_text" value="%f_text"></td>
+		<td>%req_limit</td>
+		<td><input type=submit value='OK'></td>
+	</tr>	
+</table>
+</form>
+
+<br><br>
+<b>Сообщения от клиентов</b>
+
+<table class=content>
+	<tr>
+		<th>ID</th>
+		<th>Дата/время</th>
+		<th>Номер телефона</th>
+		<th>Сообщение</th>
+		<th>Статус</th>
+	</tr>
+%rows
+</table>
+
+</div>
+
+#TEMPLATE smsnews_requests_row
+<tr>
+	<td>%id</td>
+	<td>%date_received</td>
+	<td>%src_addr</td>
+	<td>%msg_body</td>
+	<td>%msg_status</td>
+</tr>
+

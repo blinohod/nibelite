@@ -1,0 +1,32 @@
+#TEMPLATE smsnews_stat
+
+<h2>Статистика работы рассылок</h2>
+
+<center><table class="content">
+	<tr>
+		<td colspan="2" style="text-align:center">%now</td>
+	</tr>
+	<tr>
+		<th colspan="2">Количество SMS, принятых от абонентов (MO)</th>
+	</tr>
+	<tr><td>За сутки</td><td>%mo_day</td></tr>
+	<tr><td>За 7 дней</td><td>%mo_week</td></tr>
+	<tr><td>За месяц</td><td>%mo_month</td></tr>
+	<tr>
+		<th colspan="2">Количество SMS, отправленных абонентам (MT)</th>
+	</tr>
+	<tr><td>За сутки</td><td>%mt_day</td></tr>
+	<tr><td>За 7 дней</td><td>%mt_week</td></tr>
+	<tr><td>За месяц</td><td>%mt_month</td></tr>
+	<tr>
+		<th colspan="2">Подписчики</th>
+	</tr>
+	<tr><td>Всего</td><td>%users_total</td></tr>
+	<tr><td>Активные</td><td>%users_active</td></tr>
+	<tr>
+		<th colspan="2">Подписки</th>
+	</tr>
+	<tr><td>Всего</td><td>%subs_total</td></tr>
+	<tr><td>Активные</td><td>%subs_active</td></tr>
+	<tr><td>Ожидают активации</td><td>%subs_pending</td></tr>
+</table></center>

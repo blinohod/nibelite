@@ -1,0 +1,506 @@
+#TEMPLATE smsnews_messages
+<style type="text/css">
+	div#left { 
+		width:37%;
+		float:left;
+		overflow:hidden;
+		margin:0;
+		padding:0;
+		position:relative; 
+	}
+	div#user { 
+		padding:1em 0.5em;
+		text-align:center;
+		font-weight:bold; 
+		background:url(img/grad.jpg) top left repeat-x; 
+	}
+	form#filterForm { border:1px solid #ccc;padding:0.25em;margin:0 0 2px 0;text-align:center; }
+	div#messages { margin:0;padding:0;overflow-x:hidden;overflow-y:scroll; }
+	div#right { width:60%;float:right;overflow:auto;border:1px solid #ccc;margin:0;padding:4px; }
+
+	img.ic { border: none; vertical-align: middle; }
+	.msgListItem { 
+		padding: 0.25em; 
+		background:url(img/drag.jpg) bottom left repeat-x; 
+		cursor: pointer;
+		margin: 1px;
+		border: 2px solid #ccc;
+	}
+	.msgListItem ul {
+		padding: 0;
+		margin: 0 0 0 20px;
+		list-style: none;
+	}
+	.msgListItem ul li {
+		padding: 0;
+		margin: 0;
+	}
+	.msgListNav {
+		margin:0;
+		padding:0.5em;
+		text-align:center;
+		vertical-align:middle;
+		overflow:visible;
+	}
+	
+</style>
+<script type="text/javascript"><!--
+
+	var pattern;
+
+	var rusChars = new Array('а','б',
+                           'в','г','д','е','ё','ж','з',
+                           'и','й','к','л','м','н','о',
+                           'п','р','с','т','у','ф','х',
+                           'ц','ч','ш','щ','ъ','ы','ь',
+                           'э','ю','я',
+                           'А','Б','В','Г','Д','Е','Ё',
+                           'Ж','З','И','Й','К','Л','М',
+                           'Н','О','П','Р','С','Т','У',
+                           'Ф','Х','Ц','Ч','Ш','Щ','Ъ',
+                           'Ы','Ь','Э','Ю','Я',
+						   'і','ї','є','І','Ї','Є','«','»');
+
+	var transChars = new Array('a','b','v','g','d','e','jo',
+                             'zh','z','y','j','k','l','m',
+                             'n','o','p','r','s','t','u',
+                             'f','h','c','ch','sh','sch',
+                             '\`','y','\'','e','ju','ja',
+                             'A','B','V','G','D','E','E',
+                             'Zh','Z','Y','J','K','L','M',
+                             'N','O','P','R','S','T','U',
+                             'F','H','C','Ch','Sh','Sch',
+                             '\`','Y','\'','E','Ju','Ja',
+							'i','ji','je','I','Ji','Je','"','"');
+
+	var myArray = new Array();
+	
+	var coding = 0;
+	var maxSize = 160;
+
+	$(document).ready(function() {
+		resizeColumns();
+		$(window).resize(resizeColumns);
+		periodicReload();
+
+		for (var i in rusChars) {
+			myArray[rusChars[i]] = transChars[i];
+		};
+
+		pattern = rusChars.join("|");
+	});
+	
+	function initEditForm() {
+		if($('input:radio[name=coding]:checked').length) {
+			setMaxSize();
+			updateMsgBody();
+			
+			$("input:radio[name=coding]").click(function(){
+				setMaxSize();
+				updateMsgBody();
+			});
+			$("#msgBody").keyup(updateMsgBody);
+			
+			$("#msgSendTime").datetimepicker({
+				dateFormat: 'dd.mm.yy',
+				stepMinutes: 15,
+				stepHours: 1,
+				time24h: true,
+				showTime: true,
+				duration: 0
+			});
+		}
+	}
+	
+	function updateMsgBody() {
+		var mb = $('#msgBody');
+		if(coding == '0') {
+			mb.val( translit(mb.val()) );
+		};
+		var chars = mb.val().length;
+		var sms = Math.ceil(chars / (maxSize * 0.97));
+		$('#smsCount').html(sms);
+		$('#charCount').html(chars);
+	}		
+	
+	function getCoding() {
+		return $('input:radio[name=coding]:checked').val();
+	}
+	function setMaxSize() {
+		coding = getCoding();
+		if( coding=='2' ) {
+			maxSize = 70;
+		} else {
+			maxSize = 160;
+		}
+		return maxSize;
+	}
+	
+	function translit(from) {
+		var reg = new RegExp("(" + pattern + ")", "");
+		
+		
+		while (reg.test(from)) {
+			var t = RegExp.$1;
+			var reg2 = new RegExp(t, 'g');
+			
+			from = from.replace(reg2, myArray[t]);
+		};
+
+		return from;
+	};
+	
+	function resizeColumns() {
+		$('#main').height($(window).height() - ($('body').height() - $('#main').height() + 18));
+		$('#left').height($('#main').height());
+		var pos = $('#messages').position();
+		$('#messages').height($('#left').height() - pos.top);
+		$('#right').height($('#main').height() - 2*(4+1));
+	}
+	
+	function periodicReload() {
+		loadMessages();
+		window.setTimeout(periodicReload,60000);
+	}
+
+	function loadMessages() {
+		$('#messages').fadeOut('fast', function() {
+			$.post('%SELF', $('#filterForm').serialize(), function(data) {
+				$('#messages').html(data);
+				$('#messages').fadeIn();
+				
+				$('#msg'+$('#selectedMsg').val()).css("border-color", "#009");
+			});
+		});
+		return false;
+	}
+	
+	function pageBack() {
+		p = $('#filterPage').val();
+		if( p > 0 ) {
+			$('#filterPage').val(p-1);
+			loadMessages();
+		}
+		return false;
+	}
+	
+	function pageForward() {
+		p = $('#filterPage').val();
+		$('#filterPage').val(p+1);
+		loadMessages();
+		return false;
+	}
+	
+	function newMessage() {
+		$.post('%SELF', {
+			'do': 'smsnews-msgnew'
+		}, function(data) {
+			loadMessages();
+			var re = /^\{/;
+			if(re.test(data)) {
+				try {
+					var o = $.parseJSON(data);
+					selectMessage(o.id);
+				} catch(e) {
+					alert("Ошибка чтения JSON");
+				}
+			} else {
+				alert("Ошибка выполнения операции: "+data);
+			}
+		});
+		return false;
+	}
+	
+	function msgClone( id ) {
+		$.post('%SELF', {
+			'do': 'smsnews-msgclone',
+			'id': id
+		}, function(data) {
+			loadMessages();
+			var re = /^\{/;
+			if(re.test(data)) {
+				try {
+					var o = $.parseJSON(data);
+					selectMessage(o.id);
+				} catch(e) {
+					alert("Ошибка чтения JSON");
+				}
+			} else {
+				alert("Ошибка выполнения операции: "+data);
+			}
+		});
+		return false;
+	}
+	
+	function msgReset( id ) {
+		if( confirm("Вы действительно хотите изменить статус сообщения?") ) {
+			$.post('%SELF', {
+				'do': 'smsnews-msgreset',
+				'id': id
+			}, function(data) {
+				loadMessages();
+				var re = /^\{/;
+				if(re.test(data)) {
+					try {
+						var o = $.parseJSON(data);
+						selectMessage(o.id);
+					} catch(e) {
+						alert("Ошибка чтения JSON");
+					}
+				} else {
+					alert("Ошибка выполнения операции: "+data);
+				}
+			});
+		}
+		return false;
+	}
+	
+	function msgCancel( id ) {
+		if( confirm("Вы действительно хотите отключить сообщение?") ) {
+			$.post('%SELF', {
+				'do': 'smsnews-msgcancel',
+				'id': id
+			}, function(data) {
+				loadMessages();
+				var re = /^\{/;
+				if(re.test(data)) {
+					try {
+						var o = $.parseJSON(data);
+						selectMessage(o.id);
+					} catch(e) {
+						alert("Ошибка чтения JSON");
+					}
+				} else {
+					alert("Ошибка выполнения операции: "+data);
+				}
+			});
+		}
+		return false;
+	}
+
+	
+	function paintMessage() {
+		$('.msgListItem').css("border-color", "#ccc");
+		$('#msg'+$('#selectedMsg').val()).css("border-color", "#009");
+	}
+	
+	function selectMessage( id ) {
+		$('#selectedMsg').val(id);
+		paintMessage();
+		
+		$.post('%SELF', {
+			'do': 'smsnews-msgedit',
+			'id': id
+		}, function(data) {
+			$('#right').fadeOut('fast',function() {
+				$('#right').html(data);
+				$('#right').fadeIn('fast',function() {
+					initEditForm();
+				});
+			});
+		});
+		
+		return false;
+	}
+
+	function msgUpdate( id, send ) {
+		if( send == 'send' ) {
+			if( $('select[name=topics[]] option:selected').length==0 ) {
+				alert('Необходимо выбрать хотя бы одну категорию рассылок');
+				return false;
+			}
+			$('#msgEditStatus').val('QUEUED');
+		} else if( send == 'test' ) {
+			$('#msgTest').val('1');
+		}
+		$.post('%SELF', $('#msgEditForm').serialize(), function(data) {
+			loadMessages();
+			var re = /^\{/;
+			if(re.test(data)) {
+				try {
+					var o = $.parseJSON(data);
+					selectMessage(o.id);
+				} catch(e) {
+					alert("Ошибка чтения JSON");
+				}
+			} else {
+				alert("Ошибка выполнения операции: "+data);
+			}
+		});
+		return false;
+	}
+
+
+// --></script>
+
+<div id="left">
+	<div id="user">
+		<img src="img/i-user.png" class="ic" alt="%user" />%user<br/>
+		<a href="javascript:void()" onClick="newMessage();">создать новое сообщение</a>
+	</div>
+	<form  id="filterForm">
+		<select name="status">
+			<option value="" selected="1">---</option>
+			<option value="NEW">Создаются</option>
+			<option value="QUEUED">Ждут отправки</option>
+			<option value="SENT">Отправленные</option>
+			<option value="CANCELED">Выключенные</option>
+		</select>
+		%select_cat
+		<select name="sort">
+			<option value="desc" selected="1">Новые выше</option>
+			<option value="asc">Новые ниже</option>
+		</select>
+		<a href="javascript:void()" title="Обновить список" onClick="loadMessages();"><img src="img/i-reload.png" class="ic" alt="reload" /></a>
+		<input type="hidden" name="do" value="smsnews-msglist" />
+		<input type="hidden" name="page" id="filterPage" value="0" />
+		<input type="hidden" name="sel" id="selectedMsg" value="0" />
+	</form>
+	<div id="messages">&nbsp;</div>
+</div>
+<div id="right">
+&nbsp;
+</div>
+
+#TEMPLATE msg_status_new
+<img src="img/i-m-new.png" alt="Создаётся" title="Создаётся" class="ic" />
+#TEMPLATE msg_status_queued
+<img src="img/i-m-queued.png" alt="Ждёт отправки" title="Ждёт отправки" class="ic" />
+#TEMPLATE msg_status_sent
+<img src="img/i-m-sent.png" alt="Отправлено" title="Отправлено" class="ic" />
+#TEMPLATE msg_status_canceled
+<img src="img/i-m-canceled.png" alt="Выключено" title="Выключено" class="ic" />
+#TEMPLATE msg_list_item
+<div class="msgListItem" id="msg%id" onClick="selectMessage('%id');">
+	%status_img на <b>%send_time</b> для <b>%category</b> от <b>%creator</b><br/>
+	<ul>
+		%topics
+		<li>%text</li>
+	</ul>
+</div>
+#TEMPLATE msg_li_topic
+<li><small>- %topic</small></li>
+
+#TEMPLATE msg_list_empty
+<center style="margin:5em 0">ничего не найдено</center>
+
+#TEMPLATE msg_list_back
+<div style="width:22px;float:left;text-align:left"><a href="javascript:void()" onClick="pageBack();" title="предыдущие"><img src="img/i-prev.png" alt="предыдущие" class="ic" /></a></div>
+
+#TEMPLATE msg_list_forward
+<div style="width:22px;float:right;text-align:right"><a href="javascript:void()" onClick="pageForward();" title="следующие"><img src="img/i-next.png" alt="следующие" class="ic" /></a></div>
+
+#TEMPLATE msg_list_nav
+<div class="msgListNav">
+%way_back
+%way_forward
+%start-%end из %total</div>
+
+#TEMPLATE msg_edittop_new
+<div style="padding:0.5em;margin:0 0 0.5em 0;border-bottom:1px solid #ccc">
+Редактирование сообщения. Вы также можете <a href="javascript:void()" onClick="msgClone('%id');">создать копию</a> или <a href="javascript:void()" onClick="msgCancel('%id');">выбросить</a> его.
+</div>
+#TEMPLATE msg_edittop_queued
+<div style="padding:0.5em;margin:0 0 0.5em 0;border-bottom:1px solid #ccc">
+Сообщение утверждено к отправке и ожидает своей очереди.<br/>Выберите, что делать:
+<a href="javascript:void()" onClick="msgReset('%id');">снять с отправки и редактировать</a>,
+<a href="javascript:void()" onClick="msgClone('%id');">создать копию</a> или 
+<a href="javascript:void()" onClick="msgCancel('%id');">выбросить сообщение</a>.
+</div>
+#TEMPLATE msg_edittop_sent
+<div style="padding:0.5em;margin:0 0 0.5em 0;border-bottom:1px solid #ccc">
+Сообщение уже отправлено, редактировать его нельзя. Но вы можете
+<a href="javascript:void()" onClick="msgClone('%id');">создать копию</a>.
+</div>
+#TEMPLATE msg_edittop_canceled
+<div style="padding:0.5em;margin:0 0 0.5em 0;border-bottom:1px solid #ccc">
+Сообщение отключено - от его отправки отказались.<br/>Выберите, что делать:
+<a href="javascript:void()" onClick="msgReset('%id');">вернуть и редактировать</a>
+или
+<a href="javascript:void()" onClick="msgClone('%id');">создать копию</a>.
+</div>
+#TEMPLATE msg_edittop_unknown
+<div style="padding:0.5em;margin:0 0 0.5em 0;border-bottom:1px solid #ccc">
+Статус сообщения системе неизвестен.<br />Выберите, что делать:
+<a href="javascript:void()" onClick="msgReset('%id');">всё равно редактировать</a>
+или
+<a href="javascript:void()" onClick="msgClone('%id');">создать копию</a>.<br />
+Но лучшим вариантом будет обращение к разработчикам системы, поскольку такая ситуация вообще не должна возникать. 
+</div>
+
+#TEMPLATE msg_edit_show
+<table class="content" width="100%">
+	<tr><th colspan="2">Служебная информация</th></tr>
+	
+	<tr><td>Id</td><td>%id / %msg_id</td></tr>
+	<tr><td>Статус</td><td>%status</td></tr>
+	<tr><td>Создано</td><td>
+		<img src="img/i-user.png" alt="пользователем" class="ic" /><b>%creator</b> %created
+	</td></tr>
+	<tr><td>Тип</td><td>%msg_type</td></tr>
+	<tr><td>Дополнительно</td><td>%extra</td></tr>
+	
+	<tr><th colspan="2">Данные о рассылке</th></tr>
+	
+	<tr><td>Время отправки</td><td>%send_time</td></tr>
+	<tr><td>Приоритет</td><td>%priority</td></tr>
+	<tr><td>Категория подписчиков</td><td>%category</td></tr>
+	<tr><td>Количество адресатов</td><td>%num_subs (%num_test тестовых)</td></tr>
+	<tr><td>Общее количество SMS-сообщений</td><td>%num_sms</td></tr>
+	
+	<tr><th colspan="2">Темы и текст</th></tr>
+	
+	<tr><td>Категории рассылок</td><td>%topics</td></tr>
+	<tr><td>Кодирование</td><td>%coding</td></tr>
+	<tr><td>Текст</td><td>%msg_body</td></tr>	
+</table>
+
+#TEMPLATE msg_priority_0
+Обычный
+#TEMPLATE msg_priority_1
+Высокий
+#TEMPLATE msg_show_topic
+%topic<br />
+
+#TEMPLATE msg_select_coding
+<label><input type="radio" name='coding' class='change-coding' value="0" %checked0 />Latin</label><br>
+<label><input type="radio" name='coding' class='change-coding' value="2" %checked2 />Кириллица</label>
+
+#TEMPLATE msg_edit_form
+<form action="%SELF" method="post" id="msgEditForm">
+<table class="content" width="100%">
+	<tr><th colspan="2">Служебная информация</th></tr>
+	
+	<tr><td>Id</td><td>%id / %msg_id</td></tr>
+	<tr><td>Статус</td><td>%web_status</td></tr>
+	<tr><td>Создано</td><td>
+		<img src="img/i-user.png" alt="пользователем" class="ic" /><b>%creator</b> %created
+	</td></tr>
+	
+	<tr><th colspan="2">Данные о рассылке</th></tr>
+	
+	<tr><td>Время отправки</td><td>
+		<input type="text" size="20" name="send_time" id="msgSendTime" value="%send_time" />
+	</td></tr>
+	<tr><td>Приоритет</td><td>%select_priority</td></tr>
+	<tr><td>Категория подписчиков</td><td>%select_category</td></tr>
+	
+	<tr><th colspan="2">Темы и текст</th></tr>
+	
+	<tr><td>Категории рассылок<br/><br/>удерживайте Ctrl,<br/>чтобы выбрать<br/>несколько категорий</td><td>%select_topic</td></tr>
+	<tr><td>Кодирование</td><td>
+		%select_coding
+	</td></tr>
+	<tr><td>Текст<br/><br/>Символов: <b id="charCount">#</b><br/>SMS-сообщений: <b id="smsCount">#</b></td><td><textarea rows="7" cols="40" style="width:95%" name="msg_body" id="msgBody">%msg_body</textarea></td></tr>	
+	
+	<tr><th colspan="2">
+		<input type="button" name="save" value="Сохранить" onClick="msgUpdate('%id',false);" />
+		<input type="button" name="send" value="Сохранить и отправить" onClick="msgUpdate('%id','send');" />
+		<input type="button" name="send" value="Тестовая отправка" onClick="msgUpdate('%id','test');" />
+	</th></tr>
+</table>
+<input type="hidden" name="do" value="smsnews-msgupdate" />
+<input type="hidden" name="id" value="%id" />
+<input type="hidden" name="status" value="%status" id="msgEditStatus" />
+<input type="hidden" name="test" value="0" id="msgTest" />
+</form>

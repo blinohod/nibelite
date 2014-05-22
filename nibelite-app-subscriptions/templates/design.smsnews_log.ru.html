@@ -1,0 +1,51 @@
+#TEMPLATE smsnews_log
+<script type="text/javascript"><!--
+
+	function logLoad() {
+		$('#results').fadeOut('fast', function() {
+			$.post('%SELF', $('#filterForm').serialize(), function(data) {
+				$('#results').html(data);
+				$('#results').fadeIn();
+			});
+		});
+		return false;
+	}
+	
+	$(document).ready(function() {
+		$('#filterDate').datepicker({dateFormat: 'dd.mm.yy'});
+		logLoad();
+	});
+
+// --></script>
+<center>
+<h3>События в системе</h3>
+<form id="filterForm" method="post" action="%SELF" style="margin:0.5em">
+<table border="0" cellspacing="10" style="text-align:left;">
+	<tr>
+		<td>Дата:</td>
+		<td><input type="text" name="date" id="filterDate" value="%date" /></td>
+		<td><input type="button" name="ok" value="Показать" onClick="logLoad();" /></td>
+	</tr>
+</table>
+<input type="hidden" name="do" value="smsnews-logresult" />
+</form>
+</center>
+<div id="results" style="margin:0.5em 20%;padding:0.5em;border:1px solid #ccc"><img src="img/loadbar.gif" alt="Загружается..." /></div>
+
+#TEMPLATE smsnews_log_empty
+<center>Записи о событиях на выбранную дату отсутствуют.</center>
+
+#TEMPLATE smsnews_log_events
+<div style="margin:1em 40px;text-align:center">%date (событий: %total)</div>
+%events
+<div style="margin:1em 40px;text-align:center">%date (событий: %total)</div>
+
+#TEMPLATE smsnews_log_event
+<div id="event%id" style="margin: 0.5em 0 0 0">
+	<div style="background:#ccc;padding:0.25em;margin:0">
+		[%level] %created (%subscriber) %event
+	</div>
+	<div style="border:1px solid #ccc;padding:0.25em 1em;margin:0">
+		%message
+	</div>
+</div>

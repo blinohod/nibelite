@@ -1,0 +1,4 @@
+check process nibelite.smsnews-subscribe
+        with pidfile /var/run/NetSDS/nibelite.smsnews-subscribe.pid
+        start program = "/sbin/service nibelite.smsnews-subscribe start"
+        stop  program = "/sbin/service nibelite.smsnews-subscribe stop" with timeout 30 seconds

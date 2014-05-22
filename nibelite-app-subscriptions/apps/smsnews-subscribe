@@ -1,0 +1,412 @@
+#!/usr/bin/env perl 
+
+use 5.8.0;
+use strict;
+use warnings;
+
+use lib '/opt/nibelite/lib/perl';
+
+NetSDSApp->run(
+	daemon      => 1,
+	infinite    => 1,
+	has_conf    => 1,
+	use_pidfile => 1,
+	conf_file   => '/opt/nibelite/etc/apps/smsnews.conf',
+);
+
+1;
+
+=head1 NAME
+
+smsnews-subscribe
+
+=head1 SYNOPSIS
+
+/opt/nibelite/apps/smsnews-subscribe --nodaemon 
+
+=cut
+
+package NetSDSApp;
+
+use Data::Dumper;
+
+use base 'Nibelite::App::Service';
+
+use Nibelite;
+use NetSDS::Util::String;
+use Time::HiRes qw(sleep time);
+
+=head1 METHODS
+
+=over
+
+=item process()
+
+=cut
+
+sub process {
+
+	my ($this) = @_;
+
+	$this->dbh->begin();
+
+	# Fetch messages from queue
+	if ( my @msgs = $this->fetch_messages( $this->app_id, 1 ) ) {
+
+		# Process each message with transport specific logic
+		foreach my $msg (@msgs) {
+
+			$this->log( "info", "Found MO SM: from='" . $msg->{src_addr} . "'; to='" . $msg->{dst_addr} . "'" );
+
+			# Mark request message as processed
+			$this->mq->update_message( $msg->{id}, msg_status => 'PROCESSED' );
+
+			# Process SMS_RAW
+			if ( $msg->{msg_type} eq 'SMS_RAW' ) {
+
+				$this->log( 'warning', 'SMS_RAW message [id=' . $msg->{id} . '] retrieved instead of SMS_TEXT, converting.' );
+
+				$msg->{msg_type} = 'SMS_TEXT';
+				$msg->{msg_body} = $msg->{msg_body}->{text};
+			}
+
+			if ( $msg->{msg_type} eq 'SMS_TEXT' ) {
+
+				# Get cleared message body
+				my $request = lc( str_clean( $msg->{msg_body} ) );
+
+				my $resp_body = $this->handle_request( $msg->{src_addr}, $msg->{dst_addr}, $request );
+
+				# Prepare reply message
+				my $rep = $this->mq->make_reply(
+					$msg,
+					msg_type => 'SMS_TEXT',    # Text SMS with autodetected encoding
+					msg_body => $resp_body,    # Response text
+					prio     => 1,             # Interactive message
+				);
+
+				# Push reply message into queue
+				$this->mq->enqueue_message(%$rep);
+
+			} elsif ( $msg->{msg_type} eq 'DLR' ) {
+				$this->log( 'info', 'DLR retrieved: [from=' . $msg->{src_addr} . '] [to=' . $msg->{dst_addr} . ']' );
+			} else {
+				$this->log( 'warning', 'Unknown message type [type=' . $msg->{msg_type} . '] [id=' . $msg->{id} . '] for this application. Ignored.' );
+			}
+
+		} ## end foreach my $msg (@msgs)
+
+		$this->dbh->commit();
+
+	} else {
+		$this->dbh->commit();
+		sleep 2;
+	}
+
+	return 1;
+
+} ## end sub process
+
+=item handle_request(msisdn, sn, request)
+
+	Example:
+
+	my $response_text = $this->handle_request('380449999999', '1234', 'Subscribe news');
+
+=cut
+
+sub handle_request {
+
+	my ( $this, $msisdn, $sn, $request ) = @_;
+
+	# Determine HELP, SUBSCRIBE and UNSUBSCRIBE command
+	my $help_cmd  = $this->app_conf->{smsnews_help_cmd}  || 'help';
+	my $sub_cmd   = $this->app_conf->{smsnews_sub_cmd}   || 'sub';
+	my $unsub_cmd = $this->app_conf->{smsnews_unsub_cmd} || 'unsub';
+
+	# Define response messages
+	my $msg_help          = $this->app_conf->{msg_help}          || 'Use SUB TOPIC to subscribe or UNSUB TOPIC to unsubscribe.';
+	my $msg_unknown_topic = $this->app_conf->{msg_unknown_topic} || 'Sorry, you mentioned unknown topic';
+
+	my $response      = '';       # reponse text
+	my $topic_keyword = '';       # default topic
+	my $subscriber    = undef;    # subscriber
+
+	# Find subscriber or add new one
+	unless ( $subscriber = $this->find_subscriber($msisdn) ) {
+
+		# Find proper category
+		my $cat_id = undef;
+		my $cat    = $this->find_category('DEFAULT');
+		if ($cat) {
+			$cat_id = $cat->{id};
+		} else {
+			$this->log( 'warning', 'Cannot find category DEFAULT!' );
+		}
+
+		($subscriber) = @{ $this->dbh->fetch_call( "INSERT INTO smsnews.subscribers (msisdn, category_id) VALUES (?,?) RETURNING *", $msisdn, $cat_id ) };
+
+		$this->dblog( $subscriber->{id}, "New subscriber created for MSISDN=$msisdn" );
+	}
+
+	$this->log( 'debug', 'Parse incoming message [' . $request . ']' );
+
+	# Determine command and call proper logic
+	if ( $request =~ /^\s*$help_cmd\s*$/i ) {
+
+		# Process HELP commands
+		$this->log( 'debug', 'Found HELP command' );
+
+		$response = $msg_help;
+
+	} elsif ( $request =~ /^\s*$unsub_cmd(?:\s+([\w\d]+))?\s*$/i ) {
+
+		# Process UNSUBSCRIBE
+		$this->log( 'debug', 'Found UNSUBSCRIBE command' );
+
+		$topic_keyword = str_clean($1);
+		$this->log( 'debug', 'Topic keyword to search [' . $topic_keyword . ']' );
+
+		# Find topic and try to unsubscribe
+		if ( my $topic = $this->find_topic($topic_keyword) ) {
+			$response = $this->unsubscribe( $subscriber, $topic, $sn );
+		} else {
+			$response = $msg_unknown_topic;
+		}
+
+	} else {
+
+		# Process SUBSCRIBE
+		$this->log( 'debug', 'Found SUBSCRIBE command' );
+
+		# Drop command keyword if present (leave only topic keyword)
+		$request =~ s/^\s*$sub_cmd//g;
+		$topic_keyword = str_clean($request);
+		$this->log( 'debug', 'Topic keyword to search [' . $topic_keyword . ']' );
+
+		# Find topic and try to subscribe
+		if ( my $topic = $this->find_topic($topic_keyword) ) {
+			$response = $this->subscribe( $subscriber, $topic, $sn );
+		} else {
+			$response = $msg_unknown_topic;
+		}
+
+	}
+
+	return $response;    # response text
+
+} ## end sub handle_request
+
+=item B<subscribe(subscriber_id, topic_id)> - subscribe or prolongate
+
+=cut
+
+sub subscribe {
+
+	my ( $this, $subscriber, $topic, $sn ) = @_;
+
+	my $subscriber_id = $subscriber->{id};
+	my $topic_id      = $topic->{id};
+
+	my $reply = '';
+
+	# Initialize business logic parameters
+	my $prolongation = $this->app_conf->{'smsnews_prolongate_days'} || 30;
+	$prolongation += 0;
+	unless ($prolongation) { $prolongation = 30; }
+
+	# Initialize messages
+	my $msg_prolongated = $this->app_conf->{'msg_prolongated'} || 'Your subscription was prolongated successfully';
+	my $msg_sub_ok      = $this->app_conf->{'msg_sub_ok'}      || 'You are successfully subscribed';
+
+	# Update subscriber status and expire date
+	$this->dbh->call( "UPDATE smsnews.subscribers SET status = 'ACTIVE', expire = (now() + '1 year'::interval) WHERE id=?", $subscriber_id );
+
+	# Check if already subscribed
+	my $subscription = $this->subscribed( $subscriber_id, $topic_id );
+
+	if ($subscription) {
+
+		my $sql = "UPDATE smsnews.subscriptions SET status = 'ACTIVE', stopped = GREATEST(now(),stopped) + '$prolongation days'::interval WHERE id=? RETURNING *";
+		($subscription) = @{ $this->dbh->fetch_call( $sql, $subscription->{'id'}, ) };
+
+		$reply = tpl( $msg_prolongated, prolongation => $prolongation, topic => $topic->{topic} );
+		$this->dblog( $subscriber_id, "Prolongated subscription for subscriber ID: $subscriber_id" );
+
+	} else {
+
+		# No subscription yet - add new one
+		my $sql = "INSERT INTO smsnews.subscriptions (subscriber_id, topic_id, started, stopped, sn) VALUES (?, ?, now(), now() + '$prolongation days'::interval, ?) RETURNING *";
+		($subscription) = @{ $this->dbh->fetch_call( $sql, $subscriber_id, $topic_id, $sn, ) };
+
+		$reply = tpl( $msg_sub_ok, prolongation => $prolongation, topic => $topic->{topic} );
+		$this->dblog( $subscriber_id, "Subscribed to topic: " . $topic->{topic} );
+
+	}
+
+	return $reply;
+
+} ## end sub subscribe
+
+=item B<unsubscribe(subscriber_id, topic_id)> - unsubscribe 
+
+=cut
+
+sub unsubscribe {
+
+	my ( $this, $subscriber, $topic, $sn ) = @_;
+
+	my $subscriber_id = $subscriber->{id};
+	my $topic_id      = $topic->{id};
+
+	# Initialize messages
+	my $msg_unsub_ok   = $this->app_conf->{'msg_unsub_ok'}   || 'You are successfully unsubscribed.';
+	my $msg_unsub_none = $this->app_conf->{'msg_unsub_none'} || 'You are not subscribed.';
+
+	my $reply = '';    # Reply message
+
+	# Check if this is subscribed customer
+	my $subscription = $this->subscribed( $subscriber_id, $topic_id );
+	if ($subscription) {
+
+		my $sql = "UPDATE smsnews.subscriptions SET status='INACTIVE' WHERE subscriber_id = ? AND topic_id = ?";
+		$this->dbh->call( $sql, $subscriber_id, $topic_id );
+
+		$reply = tpl( $msg_unsub_ok, topic => $topic->{topic} );
+		$this->dblog( $subscriber_id, "Unsubscribed from: " . $topic->{topic} );
+
+	} else {
+
+		# No subscription - can't unsubscribe
+		$reply = tpl( $msg_unsub_none, topic => $topic->{topic}, );
+		$this->dblog( $subscriber_id, "Unsubscription on not subscribed topic: " . $topic->{topic} );
+
+	}
+
+	return $reply;
+
+} ## end sub unsubscribe
+
+=item B<subscribed(subscriber_id, topic_id)> - check subscription status
+
+	Example:
+
+	if ($this->subscribed($sub_id, $topic_id)) {
+		# respond with "Already subscribed"
+	}
+
+=cut
+
+sub subscribed {
+
+	my ( $this, $subscriber_id, $topic_id ) = @_;
+
+	my $sql = "SELECT * FROM smsnews.subscriptions WHERE subscriber_id=? AND topic_id=?";
+	my ($rec) = @{ $this->dbh->fetch_call( $sql, $subscriber_id, $topic_id ) };
+
+	if ($rec) {
+		return $rec;
+	}
+
+	return undef;
+}
+
+=item B<find_subscriber(msisdn)> - find subscriber by MSISDN
+
+	Example:
+
+	if ($sub = $this->find_subscriber('380449999999')) {
+		print "Found subscriber:" . Dumper($sub);
+	}
+
+=cut
+
+sub find_subscriber {
+
+	my ( $this, $msisdn ) = @_;
+
+	my ($subs) = @{ $this->dbh->fetch_call( "SELECT * FROM smsnews.subscribers WHERE msisdn=? LIMIT 1", $msisdn ) };
+	if ($subs) {
+		return $subs;
+	} else {
+		return undef;
+	}
+
+}
+
+=item B<find_category(keyword)> - find subscriber category
+
+=cut
+
+sub find_category {
+
+	my ( $this, $keyword ) = @_;
+
+	my ($cat) = @{ $this->dbh->fetch_call( "SELECT * FROM smsnews.categories WHERE category = ?", $keyword ) };
+	if ($cat) {
+		return $cat;
+	} else {
+		return undef;
+	}
+
+}
+
+=item B<find_topic(keyword)> - find topic record by keyword
+
+	Example:
+
+	my $topic = $this->find_topic('sport');
+	print "Topic record: " . Dumper($topic);
+
+=cut
+
+sub find_topic {
+
+	my ( $this, $keyword ) = @_;
+
+	# If topic keyword is empty - use 'DEFAULT'
+	unless ( defined $keyword ) { $keyword = ''; }
+
+	my $sql = "SELECT *, (code='DEFAULT')::integer AS def FROM smsnews.topics WHERE (lower(code) = ?) OR (code = 'DEFAULT') ORDER BY def LIMIT 1";
+	my ($topic) = @{ $this->dbh->fetch_call( $sql, lc($keyword) ) };
+
+	unless ($topic) {
+		$this->log( 'error', "Cannot find topic by keyword [$keyword] and 'DEFAULT' topic not exists too." );
+		return undef;
+	}
+
+	# Only DEFAULT topic found
+	if ( $topic->{def} ) {
+		$this->log( 'warning', "Cannot find topic by keyword [$keyword]. Used fallback to 'DEFAULT'." );
+	}
+
+	return $topic;
+
+} ## end sub find_topic
+
+=item B<dblog(subscriber_id, message)> - add service log item to DB
+
+	Example:
+
+	$this->dblog($sub_id, 'Successfully subscribed to [Soccer News]');
+
+=cut
+
+sub dblog {
+
+	my ( $this, $sub_id, $msg ) = @_;
+
+	$this->dbh->call( "INSERT INTO smsnews.log (subscriber_id, message) VALUES (?, ?)", $sub_id, $msg );
+
+}
+
+=back
+
+=head1 BUGS
+
+=head1 LICENSE
+
+=cut
+
+1;
+

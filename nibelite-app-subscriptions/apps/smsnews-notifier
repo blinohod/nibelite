@@ -1,0 +1,133 @@
+#!/usr/bin/env perl 
+
+use 5.8.0;
+use strict;
+use warnings;
+
+use lib '/opt/nibelite/lib/perl';
+
+NetSDSApp->run(
+	daemon    => 0,
+	infinite  => 0,
+	has_conf  => 1,
+	conf_file => '/opt/nibelite/etc/apps/smsnews.conf',
+);
+
+1;
+
+=head1 NAME
+
+notifier.pl - Expiring subscriptions notifier
+
+=cut
+
+package NetSDSApp;
+
+use Nibelite::Util qw(str_format);
+use POSIX qw(floor);
+use Time::HiRes qw(time);
+
+use base 'Nibelite::App::Service';
+
+sub process {
+
+	my ($this) = @_;
+
+	$this->{to_finalize} = 1;
+
+	my $notify_message = $this->app_conf_param('msg_sub_remind') || 'Your subscriptions to topic "%topic" (code %code) will expire in a few days';
+	my $subs;
+	eval { $subs = $this->fetch_subscribers(); };
+	if ($@) {
+		$this->log( 'error', sprintf( 'An error occured while fetching messages: %s', $@ ) );
+		return 0;
+	}
+	my $bandwidth = $this->app_conf_param('notify_bandwidth') || 100;
+
+	my $t0 = time();
+	my $i  = 1;
+	while ( my $sub = $subs->fetchrow_hashref() ) {
+		eval { $this->distribute_message( str_format( $notify_message, topic => $sub->{topic}, code => $sub->{code} ), $sub->{sn}, $sub->{msisdn} ); };
+		if ($@) {
+			$this->log( 'error', sprintf( 'An error occured while sending message out: %s', $@ ) );
+		}
+		my $t = time();
+		if ( ( $i % $bandwidth ) == 0 ) {
+			if ( $t < floor( $t0 + 1 ) ) {    # a second has not yet elapsed
+				my $sleeptime = floor( $t0 + 1 ) * 1.0 - $t;
+				$this->log( 'info', sprintf( '%d messages sent - sleeping for %.3 secouds', $i, $sleeptime ) );
+				usleep($sleeptime);           # sleep the rest of the time
+			}
+			$t0 = time();
+		}
+		$i = ( $i + 1 ) % $bandwidth;
+
+	}
+
+	return 1;
+
+} ## end sub process
+
+=item distribute_message
+
+	Enqueue a MT SM
+
+=cut
+
+sub distribute_message {
+
+	my ( $this, $msg, $src, $msisdn ) = @_;
+
+	$this->log( "info", "Send MT SM '$msg' from [$src] to [$msisdn]\n" );
+
+	$this->mq->enqueue_message(
+		src_app_id => $this->app_id,    # Source application ID
+		src_addr   => $src,             # Source address (short number)
+		dst_addr   => $msisdn,          # Destination address (MSISDN)
+		msg_type   => 'SMS_TEXT',       # Usual text message
+		msg_body   => $msg,             # Message body
+		msg_status => 'NEW',            # To process by router
+		prio       => 0,                # Bulk traffic
+	);
+
+	return;
+
+}
+
+=item fetch_subscribers
+
+	Returns arrayref of active subscribers (hashref: id and msisdn)
+	with expiring active subscriptions
+
+=cut
+
+sub fetch_subscribers {
+
+	my ($this) = @_;
+
+	my $nds = ( $this->app_conf_param('notify_days') || 5 ) + 0;
+	my $nd_since = sprintf( "%d days", $nds );
+	my $nd_till  = sprintf( "%d days", $nds + 1 );
+
+	# Fetch subscriptions that will be expired in nearest few days
+	my $sql = "select distinct
+					sb.id,
+					sb.msisdn,
+					t.topic,
+					t.code,
+					st.sn
+		from smsnews.active_subscriptions as st
+		left outer join smsnews.active_subscribers as sb on sb.id=st.subscriber_id
+		left join smsnews.topics t on (t.id = st.topic_id)
+		where sb.msisdn is not null
+			and st.stopped between (now()::date + ?::interval) and (now()::date + ?::interval)
+			and sb.test_until::date < now()::date";
+
+	my $subs = $this->dbh->call( $sql, $nd_since, $nd_till );
+	$this->log( "info", sprintf( "%d messages to send.", $subs->rows ) );
+	return $subs;
+
+} ## end sub fetch_subscribers
+
+1;
+

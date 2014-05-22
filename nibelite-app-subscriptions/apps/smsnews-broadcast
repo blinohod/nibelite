@@ -1,0 +1,179 @@
+#!/usr/bin/env perl 
+
+use 5.8.0;
+use strict;
+use warnings;
+
+use lib '/opt/nibelite/lib/perl';
+
+NetSDSApp->run(
+	daemon      => 1,
+	infinite    => 0,
+	has_conf    => 1,
+	use_pidfile => 1,
+	conf_file   => '/opt/nibelite/etc/apps/smsnews.conf',
+);
+
+1;
+
+=head1 NAME
+
+broadcast.pl - SMS news distribution list
+
+=cut
+
+package NetSDSApp;
+
+use warnings;
+use strict;
+
+use Data::Dumper;
+
+use JSON;
+use Nibelite::SMS;
+use NetSDS::Util::String;
+use NetSDS::Util::Convert;
+
+use base 'Nibelite::App::Service';
+
+sub process {
+
+	my ($this) = @_;
+
+	$this->dbh->begin();
+
+	# Fetch news (events) from queue
+	if ( my $event = $this->fetch_event() ) {
+
+		$this->log( "info", "Found MT event to distribute." );
+
+		# Now only SMS_TEXT messages are supported
+		if ( $event->{msg_type} eq 'SMS_TEXT' ) {
+			$this->distribute_message($event);
+		} else {
+			$this->log( "error", "New event has unsupported message type: " . $event->{msg_type} );
+			$this->dbh->call( "UPDATE smsnews.events SET status='CANCELED' WHERE id=?", $event->{id} );
+		}
+
+	}
+
+	$this->dbh->commit();
+
+	sleep 1;
+	return 1;
+
+} ## end sub process
+
+sub distribute_message {
+
+	my ( $this, $event ) = @_;
+
+	# Fetch subscribers
+	my @subs = $this->fetch_subscribers( $event->{topics}, $event->{category_id} );
+
+	# FIXME - dirty hack by misha@
+	# Fix wrong characters
+	$event->{msg_body} =~ s/«/"/gs;
+	$event->{msg_body} =~ s/»/"/gs;
+
+	# Determine number of SMS (single MT SM - 140 bytes)
+	my @pdu_chain = string_to_pdu( $event->{msg_body}, $event->{coding} );
+	my $sms_parts = scalar @pdu_chain;
+
+	my $num_subs = 0;    # number of subscribers will receive event
+	my $num_sms  = 0;    # total number of MT SM
+
+	foreach my $sub (@subs) {
+
+		# Update counters
+		$num_subs++;
+		$num_sms += $sms_parts;
+
+		my $sn = $sub->{sn} || $this->app_conf->{'smsnews_default_src'};
+
+		foreach my $pdu (@pdu_chain) {
+
+			my $msg = {
+				src_app_id => $this->app_id,             # Source application ID
+				src_addr   => $sn,                       # Source address (short number)
+				dst_addr   => $sub->{msisdn},            # Destination address (MSISDN)
+				msg_type   => 'SMS_RAW',                 # Usual text message
+				msg_body   => $pdu,                      # Message body
+				msg_status => 'NEW',                     # To process by router
+				charging   => 'news-' . $event->{id},    # Charging code to identify
+			};
+
+			my $msg_id = $this->mq->enqueue_message(%$msg);
+
+			$this->dbh->call(
+				"INSERT INTO smsnews.msg_meta (id,topic_id,queue_id,sub_id,num_sms,msisdn,sn) VALUES (?,?,?,?,?,?,?)",
+				$msg_id,
+				$event->{topics}->[0],
+				$event->{id},
+				$sub->{id},
+				$sms_parts,
+				$sub->{msisdn},
+				$sub->{sn},
+			);
+		} ## end foreach my $pdu (@pdu_chain)
+
+	} ## end foreach my $sub (@subs)
+
+	# Update status and statistics for SMS event
+	$this->dbh->call(
+		"UPDATE smsnews.queue SET status='SENT', num_subs=?, num_sms=? WHERE id=?",
+		$num_subs,
+		$num_sms,
+		$event->{id}
+	);
+
+	return;
+
+} ## end sub distribute_message
+
+sub fetch_event {
+
+	my ($this) = @_;
+
+	my $sql = "SELECT * FROM smsnews.queue WHERE status='QUEUED' AND send_time < now() ORDER BY priority, send_time FOR UPDATE";
+	my ($event) = @{ $this->dbh->fetch_call($sql) };
+
+	return $event;
+
+}
+
+=item B<fetch_subscribers($topics, $cat_id)> - fetch list of subscribers
+
+=cut
+
+sub fetch_subscribers {
+
+	my ( $this, $topics, $category_id ) = @_;
+
+	unless (@$topics) {
+		$this->log('warning', 'Cannot fetch subscribers for empty topc list');
+		return ();
+	};
+
+	unless ($category_id) {
+		$this->log('warning', 'Cannot fetch subscribers for undefined category');
+		return ();
+	};
+
+	my $sql_topics = join ', ', @$topics;
+
+	my $sql = "SELECT s.id, s.msisdn, ss.sn
+		FROM smsnews.active_subscribers s
+		JOIN smsnews.active_subscriptions ss ON (s.id = ss.subscriber_id)
+		WHERE s.category_id = ?
+		AND ss.topic_id IN ($sql_topics)
+		GROUP BY s.id, s.msisdn, ss.sn";
+
+	my @subs = @{ $this->dbh->fetch_call( $sql, $category_id ) };
+
+	return @subs;
+
+}
+
+1;
+

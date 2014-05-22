@@ -1,0 +1,2 @@
+#!/bin/sh
+15 11 * * * root /opt/nibelite/apps/smsnews-notifier
