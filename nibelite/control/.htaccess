@@ -1,0 +1,13 @@
+# Set default screen
+DirectoryIndex messages.php
+
+# Set default place where to search Nibelite stuff
+SetEnv NIBELITE_HOME /opt/nibelite
+
+# Override PHP.ini
+php_value zend.ze1_compatibility_mode Off
+php_value upload_max_filesize 32M
+php_value max_execution_time 120
+php_value max_input_time 120
+php_value memory_limit 64M
+

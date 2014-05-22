@@ -1,0 +1,60 @@
+#TEMPLATE plan_table
+#
+#  %rows
+#
+<div><small><a href="%script?do=plan-add">создать новый план</a></small></div>
+<table class=content width=100%>
+	<tr><th rowspan=2>ID</th><th rowspan=2>Оператор</th><th rowspan=2>План</th><th rowspan=2>Код плана</th>
+		<th colspan=2>Тариф</th>
+    <th rowspan=2>Налог сумм.</th></tr>
+<tr><th>цена</th><th>доход</th></tr>
+%rows
+</table>
+
+#TEMPLATE plan_empty
+#
+#  %script
+#
+<tr><td colspan=13>База пуста. <a href="%script?do=plan-add">Щёлкните здесь для добавления тарифного плана.</a></td></tr>
+
+
+#TEMPLATE plan_row
+#
+#  %script, %id
+#
+<tr><td><b>%id</b></td><td>%provider</td>
+    <td><a href="%script?do=plan-edit&id=%id">%title</a></td>
+		<td>%name</td>
+    <td>%cost</td><td>%income</td>
+    <td>%taxes</td>
+</tr>
+
+#TEMPLATE plan_edit
+#
+#  %script
+#  %id
+#  %do
+#  %dis
+#
+<center><table class=content>
+<form method=post action="%script">
+	<tr><th>ID</th><th>Оператор</th><th>Название</th><th>Код</th></tr>
+<tr><td><input type=text size=5 maxlength=5 name="id" value="%id"%dis></td>
+<td><input type=text size=30 maxlength=128 name="provider" value="%provider"></td>
+<td><input type=text size=30 maxlength=128 name="title" value="%title"></td>
+<td><input type=text size=30 maxlength=128 name="name" value="%name"></td>
+</tr>
+<tr><td colspan=2>Суммарный налог для расчётов с правообладателями (напр., 25% = 0.25):</td>
+<td colspan=2><input type=text size=10 name="taxes" value="%taxes"></td></tr>
+<tr><th colspan=4>Оплата за транзакцию:</th></tr>
+<tr>
+<td>Цена<br><input type=text size=10 name="cost" value="%cost"></td>
+<td>Доход<br><input type=text size=10 name="income" value="%income"></td>
+<td>&nbsp;</td>
+</tr>
+
+<tr><td>&nbsp;</td><td><input type=submit value="  Сохранить  "></td></tr>
+<input type=hidden name=do value="%do"></form>
+</table></center>
+<br>
+

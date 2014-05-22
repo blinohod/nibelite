@@ -1,0 +1,11 @@
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','menu','i18n','Язык');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','menu','users','Пользователи');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','menu','groups','Группы');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','menu','core-setup','Система');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','menu','core-legacy','Дополнительно');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','menu','smshttpgw-setup','Sms2Web');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','menu','messages.php','Очередь сообщений');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','menu','config.php','Конфигурация');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','menu','login.php','Логин');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','menu','billing.php','Биллинг');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','menu','accounts','Учетные записи');

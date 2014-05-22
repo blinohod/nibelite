@@ -1,0 +1,78 @@
+#!/bin/sh
+#
+# template	Summary of the service.
+#
+# chkconfig: - 90 10
+# description:	multi-line \
+#		description \
+#		of the service.
+# processname: template
+# config: /etc/template.conf
+# pidfile: /var/run/NetSDS/kannel.send.pid
+
+# Do not load RH compatibility interface.
+WITHOUT_RC_COMPAT=1
+
+# Source function library.
+. /etc/init.d/functions
+
+PIDFILE=/var/run/NetSDS/nibelite.kannel-send.pid
+LOCKFILE=/var/lock/subsys/nibelite.kannel-send
+DAEMON="/opt/nibelite/channels/kannel-send"
+OPTIONS=" --daemon --name nibelite.kannel-send"
+RETVAL=0
+
+
+start()
+{
+	start_daemon --pidfile "$PIDFILE" --lockfile "$LOCKFILE" -- $DAEMON $OPTIONS
+	RETVAL=$?
+	return $RETVAL
+}
+
+stop()
+{
+	stop_daemon --pidfile "$PIDFILE" --lockfile "$LOCKFILE" -- perl
+	RETVAL=$?
+	return $RETVAL
+}
+
+restart()
+{
+	stop
+	start
+}
+
+
+# See how we were called.
+case "$1" in
+	start)
+		start
+		;;
+	stop)
+		stop
+		;;
+	restart)
+		stop
+		start
+		;;
+	condstop)
+		if [ -e "$LOCKFILE" ]; then
+			stop
+		fi
+		;;
+	condrestart)
+		if [ -e "$LOCKFILE" ]; then
+			restart
+		fi
+		;;
+	status)
+		status --lockfile "$LOCKFILE" --pidfile "$PIDFILE" --expect-user root -- perl
+		RETVAL=$?
+		;;
+	*)
+		msg_usage "${0##*/} {start|stop|restart|condstop|condrestart|status}"
+		RETVAL=1
+esac
+
+exit $RETVAL

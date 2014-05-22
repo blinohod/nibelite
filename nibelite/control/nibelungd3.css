@@ -1,0 +1,213 @@
+
+/* 
+    Nibelung D3 CSS layout
+    $Id: nibelungd3.css 313 2006-07-19 13:32:41Z zmeuka $
+*/
+
+
+body,p,div,span,td,th,li,dd,dt,blockquote,h1,h2,h3 {
+    font-family: 'Arial Cyr', 'Verdana', 'Tahoma', sans-serif;
+    font-size: 12px;
+  }
+
+
+body {
+    background:#cccccc;
+    padding:8px;
+    margin:0px;
+  }
+
+input#time {
+    padding: 5px 0px 0px;
+    border: 0px;
+    text-align: center;
+    width: 100%;
+    font-family: Verdana;
+    color: #ffffff;
+    background-color: #999999;
+}
+
+div#logo{
+    float: left;
+    margin: 0px;
+    padding: 20px 8px;
+    background: #999999;
+    border: 1px solid #333333;
+    color: #ffffff;
+    text-align: center;
+    vertical-align: middle;
+    width: 180px;
+    z-index: 99;
+  }
+
+
+div#topmenu {
+    margin: 8px 0px 0px 0px;
+    padding: 2px 8px;
+    color: #cccccc;
+    text-align: center;
+    background: #666666;
+    border-top: 1px solid #333333;
+    border-bottom: 1px solid #333333;
+    border-right: 1px solid #333333;
+  }
+div#topmenu a, div#topmenu a:link, div#topmenu a:visited {
+    color: #cccccc;
+    font-weight: bold;
+    text-decoration: none;
+  }
+div#topmenu a:hover {
+    color: #ffffff;
+    font-weight: bold;
+    text-decoration: none;
+  }
+
+div#topmodule {
+    margin: 0px;
+    padding: 4px 8px;
+    color: #ffffff;
+    font-weight: bold;
+    text-align: center;
+    background: #797979;
+    border-bottom: 1px solid #333333;
+    border-right: 1px solid #333333;
+  }
+
+div#submenu {
+    margin: 0px 0px 0px 90px;
+    padding: 2px 8px;
+    color: #cccccc;
+    text-align: center;
+    background: #8B8B8B;
+    border-bottom: 1px solid #333333;
+    border-right: 1px solid #333333;
+    border-left: 1px solid #333333;    
+  }
+div#submenu a, div#submenu a:link, div#submenu a:visited {
+    color: #ffffff;
+    font-weight: normal;
+    text-decoration: none;
+  }
+div#submenu a:hover {
+    color: #ffffff;
+    font-weight: normal;
+    text-decoration: underline;
+  }
+
+div#status {
+    margin: 0px;
+    padding: 4px;
+    clear: left;
+    text-align: center;
+    color: #660000;
+}
+
+div#main {
+    background: #f0f0f0;
+    border: 1px solid #333333;
+    margin: 0px;
+    padding: 8px;
+    color: black;
+}
+
+h1 {
+    font-size: 22px;
+    color: #666666;
+  }
+
+
+h1 a, h1 a:link, h1 a:visited {
+    color: #666666;
+    text-decoration: underline;
+  }
+
+
+h1 a:hover, h1 a:active {
+    color: #666666;
+    text-decoration: underline;
+  }
+
+
+h2 {
+    font-size: 18px;
+    color: #666666;
+  }
+
+
+h2 a, h1 a:link, h1 a:visited {
+    color: #666666;
+    text-decoration: underline;
+  }
+
+
+h2 a:hover, h1 a:active {
+    color: #666666;
+    text-decoration: underline;
+  }
+
+h3 {
+	color: #666666;
+	text-align: center;
+}
+
+small {
+    font-size: 10px;
+  }
+
+
+.Copy {
+    color: #777777;
+    font-size: 9px;
+  }
+
+
+.content {
+    border: 1px solid #333333;
+    border-collapse: collapse;
+    background: #ffffff;
+  }
+
+
+.content TR TD {
+    border: 1px solid #666666;
+    margin: 0px;
+    padding: 2px;
+    background: #ffffff;
+    font-size: 10px;
+    text-align: left;
+  }
+
+
+.content TR TD SPAN {
+    font-size: 10px;
+  }
+.content TR TD DIV {
+    font-size: 10px;
+  }
+
+.content TR TH {
+    border: 1px solid #666666;
+    margin: 0px;
+    padding: 2px;
+    background: #cccccc;
+    color: #000000;
+    font-size: 10px;
+    font-weight: bold;
+    text-align: center;
+  }
+
+
+.content TR TH A:link, .content TR TH A:visited, .content TR TH A:active {
+    color: #000000;
+  }
+
+
+.nav {
+    margin: 8px;
+    text-align: center;
+  }
+
+form {
+	margin: 0px;
+	padding: 0px;
+}

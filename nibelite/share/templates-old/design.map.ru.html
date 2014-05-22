@@ -1,0 +1,75 @@
+# $Id: design.map.html 159 2008-02-19 11:20:55Z misha $
+
+#translate cms_head_map Соответствие кодов заказов
+
+#TEMPLATE map_table
+#
+#  %rows
+#
+<script type="application/x-javascript">
+	<!--
+function setSubmitDelete(what){
+  if(document.getElementById){
+    elDo = document.getElementById('do'+what);
+    elSubmit = document.getElementById('submit'+what);
+    if(elDo){
+      if(elDo.value == 'map-update'){
+        elDo.value = 'map-delete';
+        if(elSubmit)
+          elSubmit.value = 'удалить?!';
+      }else{
+        elDo.value = 'map-update';
+        if(elSubmit)
+          elSubmit.value = 'сохранить';
+      }
+    }
+  }
+}
+	-->
+</script>
+<a href="#add">Щёлкните здесь для добавления кода.</a>
+<table class=content width=100%><tr><th>ID</th><th>Тип данных</th><th>Последняя<br>цифра кода</th><th>Fn</th></tr>
+%rows
+<tr><th colspan=4><a name="add"/>Добавить новый код:</th></tr>
+<form name="insertmime" method="get" action="%script">
+<input type="hidden" name="do" value="map-insert">
+<tr>
+  <td>&nbsp;</td>
+  <td>%[type_id]</td>
+  <td><input type="text" size=8 name="code" value=""></td>
+  <td><input type="submit" value="добавить"></td>
+</tr>
+</form>
+</table>
+
+#TEMPLATE map_empty
+#
+#  %script
+#
+<tr><td colspan=4>Ничего нет.</td></tr>
+
+#TEMPLATE map_row
+#
+#  %script, %id, %type_id, %code
+#
+<form name="editmap%id" method="get" action="%script">
+<input id="do%id" type="hidden" name="do" value="map-update">
+<tr>
+  <td><input type="text" size=3 readonly="yes" name="id" value="%id" style="border: none;color:#666666;text-align:center;"></td>
+  <td>%[type_id]</td>
+  <td><input type="text" size=4 name="code" value="%code" style="border:2px solid #000099; text-align:center;"></td>
+  <td><input id="submit%id" type="submit" value="сохранить">[<a href="javascript:void(0);" onclick="return setSubmitDelete('%id');" style="color:red;font-weight:bold">x</a>]</td>
+</tr>
+</form>
+
+#TEMPLATE map_edit
+#
+#  %script
+#  %id
+#  %class
+#  %descr
+#  %do
+#
+<center>Выполнение функции отдельного редактирования в данном модуле не предусмотрена. Дорогая редакция приносит искренние соболезнования и просит проверить ссылки.
+</center>
+<br>

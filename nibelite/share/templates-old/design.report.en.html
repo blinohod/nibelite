@@ -1,0 +1,41 @@
+#TEMPLATE report_pagestart
+#
+<html>
+<head>
+  <title>Reporting Engine : Nibelite</title>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+  <link rel=stylesheet type="text/css" href="/nibelite/control/nibelungd3.css">
+</head>
+<body bgcolor="#ffffff" style="margin: 0px; padding: 20px;">
+#
+#
+#
+#TEMPLATE report_pageend
+#
+</body>
+</html>
+#
+#
+#
+#TEMPLATE report_init
+#  %since
+#  %till
+#  %script
+#  %mode
+<center>
+<table class=content>
+<form method=get action="%script" target="_blank">
+<input type=hidden name=do value="report-report">
+<tr><th colspan=2>Input report parameters</th></tr>
+<tr><td>Report type</td><td>Report view</td></tr>
+<tr><td>%mode</td><td>%view</td></tr>
+<tr><td>Since date (including)</td><td>Till date (including)</td></tr>
+<tr><td>%since</td><td>%till</td></tr>
+<tr><th colspan=2>Extra parameters for some of report types</th></tr>
+<tr><td>Delivery channel<br><small>(short codes)</small></td><td>%channel</td></tr>
+<tr><td>&nbsp;</td><td><input type=submit value="OK"></td></tr>
+</form>
+</table>
+</center>
+<br>
+

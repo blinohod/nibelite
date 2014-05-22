@@ -1,0 +1,84 @@
+#!/usr/bin/env perl 
+
+use 5.8.0;
+use strict;
+use warnings;
+
+NetSDSApp->run(
+	daemon    => 0,
+	infinite  => 0,
+	has_conf  => 1,
+	conf_file => '/opt/nibelite/etc/channels/fake.conf',
+	mode      => 'sender',
+);
+
+1;
+
+package NetSDSApp;
+
+use warnings;
+use strict;
+
+use Data::Dumper;
+use NetSDS::Util::String;
+use Time::HiRes qw(time sleep);
+
+use lib '/opt/nibelite/lib/perl';
+use base 'Nibelite::App::Channel';
+
+sub start {
+
+	my ($this) = @_;
+
+	print "Channel configuration:\n" . Dumper($this->chan_conf);
+}
+
+sub process {
+
+	my ( $this, $msg ) = @_;
+
+	print "Enter process()\n";
+
+	print "Send MT SM: " . Dumper($msg);
+
+	# Retrieve runtime configuration for target channel
+	my $chan_conf = $this->chan_conf->{ $msg->{dst_app_id} };
+
+	my $bandwidth     = $chan_conf->{bandwidth};
+	my $retries       = $chan_conf->{retries};
+	my $retry_timeout = $chan_conf->{retry_timeout};
+
+	# Initialize SMS parameters
+	my $from = $msg->{src_addr};
+	my $to   = $msg->{dst_addr};
+
+	# Prepare message body
+	my $text   = undef;
+	my $coding = undef;
+
+	# Process generic text SMS
+	if ( $msg->{msg_type} eq 'SMS_TEXT' ) {
+
+		$text = $msg->{msg_body};
+		$text = str_encode($text);    # need unicode characters, not byte string
+
+		# SMS encoding autodetection
+		# If text can't be recoded to GSM 03.38 then use UCS-2BE charset
+		my $gsm0338 = undef;
+		eval { $gsm0338 = str_recode( $text, "utf-8", "gsm0338" ); };
+		if ( $@ and !$gsm0338 ) {
+			$coding = 2;              # UCS-2BE (16 bit)
+		} else {
+			$coding = 0;              # GSM 03.38 (7bit)
+		}
+
+		$text = str_decode($text);    # convert string back to byte sequence
+	}
+
+	# Seems like impossible to send MT SM to Kannel
+	return 1;
+
+} ## end sub process
+
+1;
+

@@ -1,0 +1,54 @@
+# $Id: design.vendor.html 159 2008-02-19 11:20:55Z misha $
+
+#TEMPLATE vendor_table
+#
+#  %rows, %script
+#
+<div>[<a href="%script?do=vendor-add">Добавить поставщика</a>]</div>
+<table class=content width=100%><tr><th>ID</th><th>Название и описание</th><th>Расценки</th></tr>
+%rows
+</table>
+
+#TEMPLATE vendor_empty
+#
+#  %script
+#
+<tr><td colspan=3>База пуста. <a href="%script?do=vendor-add">Щёлкните здесь для добавления поставщика.</a></td></tr>
+
+
+#TEMPLATE vendor_row
+#
+#  %script, %id, %title, %descr
+#
+<tr><td><b>%id</b></td><td><a href="%script?do=vendor-edit&id=%id">%title</a><br>%descr</td><td>%prices</td></tr>
+
+#TEMPLATE vendor_edit
+#
+#  %script
+#  %id
+#  %title
+#  %descr
+#  %do
+#
+<center><table class=content>
+<form method=post action="%script">
+<tr><th>ID</th><th>Название поставщика</th></tr>
+<tr><td><input type=text size=5 maxlength=5 name="id" value="%id"%dis></td>
+<td><input type=text size=40 maxlength=64 name="title" value="%title"></td></tr>
+<tr><th colspan=2>Описание поставщика:</th></tr>
+<tr><td colspan=2><textarea cols=60 name="descr" rows=3>%descr</textarea></td></tr>
+<tr><th colspan=2>Расценки</th></tr>
+<tr><td>Стоимость тарифной единицы</td><td><input type=text size=10 maxlength=11 name="tariff" value="%tariff"></td></tr>
+<tr><th colspan=2>Цены в тарифных единицах</th></tr>
+%classes
+<tr><th>&nbsp;</th><th><input type=submit value="  Сохранить  "></th></tr>
+<input type=hidden name=do value="%do"></form>
+</table></center>
+<br>
+
+#TEMPLATE vendor_editclass
+#
+#  %id, %class, %price
+#
+<tr><td>%id: %class</td><td><input type=text size=10 maxlength=11 name="price[%id]" value="%price"></td></tr>
+

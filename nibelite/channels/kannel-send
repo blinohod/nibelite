@@ -1,0 +1,173 @@
+#!/usr/bin/env perl 
+
+use 5.8.0;
+use strict;
+use warnings;
+
+NetSDSApp->run(
+	daemon      => 0,
+	infinite    => 0,
+	has_conf    => 1,
+	use_pidfile => 1,
+	conf_file   => '/opt/nibelite/etc/channels/kannel.conf',
+	mode        => 'sender',
+);
+
+1;
+
+package NetSDSApp;
+
+use lib '/opt/nibelite/lib/perl';
+
+use Data::Dumper;
+
+use NetSDS::Kannel;
+use NetSDS::Util::String;
+use NetSDS::Util::Convert;
+use Time::HiRes qw(time sleep);
+use JSON;
+
+use base 'Nibelite::App::Channel';
+
+sub start {
+
+	my ($this) = @_;
+
+	$this->mk_accessors('kannel');
+	$this->kannel( NetSDS::Kannel->new() );
+
+	$this->mk_accessors('json');
+	$this->json( JSON->new() );
+
+}
+
+sub process {
+
+	my ( $this, $msg ) = @_;
+
+	#warn Dumper($msg);
+	#sleep 1;
+	#exit;
+
+	# Retrieve runtime configuration for target channel
+	my $chan_conf = $this->chan_conf->{ $msg->{dst_app_id} };
+
+	# Initialize sendsms parameters (SMSC, URL, authentication)
+	my $send_url    = $chan_conf->{sendsms_url};
+	my $send_user   = $chan_conf->{sendsms_user};
+	my $send_passwd = $chan_conf->{sendsms_passwd};
+	my $smsc        = $chan_conf->{smsc};
+
+	my $bandwidth     = $chan_conf->{bandwidth};
+	my $retries       = $chan_conf->{retries};
+	my $retry_timeout = $chan_conf->{retry_timeout};
+
+	my $add_plus = $chan_conf->{add_plus};
+
+	# Set DLR processing URL
+	$this->kannel->dlr_url( $this->chan_conf->{ $msg->{dst_app_id} }->{dlr_url} );
+
+	# Initialize SMS parameters
+	my $from = $msg->{src_addr};
+	my $to   = $msg->{dst_addr};
+
+	# Add leading plus if necessary
+	if ( $add_plus and ( $add_plus eq 'true' ) ) {
+		$to = '+' . $to;
+	}
+
+	$this->log( "info", "MT SM retrieved: from='$from'; to='$to'" );
+
+	# Prepare message body
+	my $text   = undef;
+	my $coding = undef;
+	my $udh    = undef;
+
+	# Process generic text SMS
+	if ( $msg->{msg_type} eq 'SMS_TEXT' ) {
+
+		$text = $msg->{msg_body};
+		$text = str_encode($text);    # need unicode characters, not byte string
+
+		# SMS encoding autodetection
+		# If text can't be recoded to GSM 03.38 then use UCS-2BE charset
+		my $gsm0338 = undef;
+		eval { $gsm0338 = str_recode( $text, "utf-8", "gsm0338" ); };
+		if ( $@ and !$gsm0338 ) {
+			$coding = 2;              # UCS-2BE (16 bit)
+		} else {
+			$coding = 0;              # GSM 03.38 (7bit)
+		}
+
+		$text = str_decode($text);    # convert string back to byte sequence
+
+	} elsif ( $msg->{msg_type} eq 'SMS_RAW' ) {
+
+		# Decode SMS PDU from JSON string
+		my $body = $msg->{msg_body};
+
+		# Fill data for sending to Kannel
+		$coding = $body->{coding} + 0;
+		$udh    = $body->{udh};
+
+		$text = $body->{ud};
+		if ( $coding eq 0 ) { $text = str_recode( $body->{ud}, 'GSM0338',  'UTF-8' ); }
+		if ( $coding eq 2 ) { $text = str_recode( $body->{ud}, 'UTF-16BE', 'UTF-8' ); }
+
+	} else {
+
+		$this->log( 'error', 'Retrieved wrong message [msg_type=' . $msg->{msg_type} . '] [id=' . $msg->{id} . ']' );
+		return undef;
+	}
+
+	my $try = 0;    # retries counter
+
+	# Try resending until success or retries limit
+	while ( $try < $retries ) {
+
+		$try++;
+
+		# Trying to send MT SM to Kannel
+		my $res = $this->kannel->send(
+			sendsms_url    => $send_url,
+			sendsms_user   => $send_user,
+			sendsms_passwd => $send_passwd,
+			smsc           => $smsc,
+			from           => $from,
+			to             => $to,
+			text           => $text,
+			charset        => 'utf-8',
+			coding         => $coding,
+			dlr_id         => $msg->{id},
+			udh            => $udh,
+		);
+
+		if ($res) {
+			return 1;    # Everything is OK
+		} else {
+
+			my $err = $this->kannel->errstr();
+
+			# If 40X error occured - it's finally rejected message.
+			# So no need to resend it more.
+			if ( $err =~ /^40\d\s*/ ) {
+				$this->log( "error", "Kannel rejected message: smsc='$smsc', from='$from', to='$to'" );
+				last;
+			}
+
+			$this->log( "error", "Can't send MT SM at retry=$try, smsc='$smsc', from='$from', to='$to', error='" . $this->kannel->errstr() . "'" );
+
+			# Seems like temporary error - wait for Kannel alive
+			sleep $retry_timeout;
+
+		}
+
+	} ## end while ( $try < $retries )
+
+	# Seems like impossible to send MT SM to Kannel
+	return undef;
+
+} ## end sub process
+
+1;
+

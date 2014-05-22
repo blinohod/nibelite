@@ -1,0 +1,71 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+Users->run(
+	table             => 'core.users',
+	selectable_fields => [ 'id', 'login', 'active', 'created', 'expire', 'name', 'email', 'descr' ],
+	updatable_fields => [ 'login', 'password', 'active', 'expire', 'name', 'email', 'descr' ],
+	sortable_fields  => [ 'id',   'login',  'active', 'created', 'expire', 'name', 'email' ],
+	update_fields_map => { password => 'MD5(:password)'},
+	create_fields_map => { password => 'MD5(?)'},
+	filters => {
+		sSearch => sub {
+			my ($this, $value, $statement) = @_;
+			my $fragment = "(core.users.login ILIKE :f_search) OR (core.users.name ILIKE :f_search) OR (core.users.email ILIKE :f_search)";
+			$value =~ s/([%_])/\\$1/g;
+			$statement->where([$fragment]);
+			$statement->params({ f_search => "%$value%" });
+			return $statement;
+		}
+	}
+);
+
+package Users;
+
+use Digest::MD5 qw(md5_hex);
+use lib '/opt/nibelite/lib/perl';
+use base 'Nibelite::App::CRUD';
+
+sub action_info {
+	my ( $this, $data, %params ) = @_;
+	return {
+		title => "Users",
+		menu => {
+			"users" => "Users"
+		},
+		"default" => "users"
+	};
+}
+
+sub get_default_values {
+	return { password => md5_hex(rand()) };
+}
+
+sub action_groups {
+	my ( $this, $data, %params ) = @_;
+	my $id = exists $params{id} ? $params{id}+0 : 0;
+	return {},{status=>'error',message=>'No User Id specified'} unless $id;
+	my $rows = $this->dbh->fetch_call("select id, group_name, user_id is not null as mine from core.groups left join core.users_groups on id=group_id and user_id=? order by group_name",$id);
+	return $rows;
+}
+
+sub action_changegroup {
+	my ( $this, $data, %params ) = @_;
+	my $user_id = exists $params{user_id} ? $params{user_id}+0 : 0;
+	my $group_id = exists $params{group_id} ? $params{group_id}+0 : 0;
+	my $remove = exists $params{remove} ? $params{remove}+0 : 0;
+	
+	return {},{status=>'error',message=>'No User or Group Id specified'} unless ($user_id and $group_id);
+	
+	if ($remove) {
+		$this->dbh->call("delete from core.users_groups where user_id=? and group_id=?",$user_id,$group_id);
+	} else {
+		$this->dbh->call("insert into core.users_groups (user_id,group_id) values (?,?)",$user_id,$group_id);
+	}
+	
+	return {};
+}
+
+1;

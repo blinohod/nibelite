@@ -1,0 +1,23 @@
+#!/bin/bash
+# Test connection status for given smsc-id
+# Return exit-code for monit.
+# Without smsc-id return status for all smsc
+
+get_status (){
+    (GET http://127.0.0.1:13000/status)|grep -Ew "$1" | 
+        sed -e 's/\[.*\]//i' | 
+        awk -F ' ' '{if ( $3 == "(online" ) print "OK"; else print "ERROR"; }'
+}
+
+if [ -n "$1" ]; then
+    ret=$(get_status $1)
+    [ -z "$ret" ] && exit 1
+    [ "$ret" == "OK" ] && exit 0 || exit 1 
+else
+
+    for config in /etc/kannel/smsc.enabled/*.conf; do
+        smsc=$(grep ^smsc-id $config | cut -d' ' -f3)
+        echo "$smsc is $(get_status $smsc)"
+    done
+fi
+

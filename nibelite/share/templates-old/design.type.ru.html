@@ -1,0 +1,111 @@
+# $Id: design.type.html 159 2008-02-19 11:20:55Z misha $
+
+#translate cms_head_type Типы данных хранилища
+
+#TEMPLATE type_table
+#
+#  %rows
+#
+<script type="application/x-javascript">
+	<!--
+function setSubmitDelete(what){
+  if(document.getElementById){
+    elDo = document.getElementById('do'+what);
+    elSubmit = document.getElementById('submit'+what);
+    if(elDo){
+      if(elDo.value == 'type-update'){
+        elDo.value = 'type-delete';
+        if(elSubmit)
+          elSubmit.value = 'удалить?!';
+      }else{
+        elDo.value = 'type-update';
+        if(elSubmit)
+          elSubmit.value = 'сохранить';
+      }
+    }
+  }
+}
+
+function openEdit(someid){
+  if(document.getElementById){
+    elView = document.getElementById('vdiv'+someid);
+    elEdit = document.getElementById('ediv'+someid);
+    if(elView){
+      elView.className = 'closed';
+    }
+    if(elEdit){
+      elEdit.className = 'open';
+    }
+  }
+}
+function closeEdit(someid){
+  if(document.getElementById){
+    elView = document.getElementById('vdiv'+someid);
+    elEdit = document.getElementById('ediv'+someid);
+    if(elView){
+      elView.className = 'open';
+    }
+    if(elEdit){
+      elEdit.className = 'closed';
+    }
+  }
+}
+	-->
+</script>
+<style type="text/css">
+.open { display:block; }
+.closed { display:none; }
+</style>
+<div style="text-align:right;margin:4px;">[<a href="#add">Создать новый тип</a>]</div>
+<table class=content width=100%><tr><th>ID</th><th>Тип</th><th>Описание</th><th>Совместимость</th><th>Fn</th></tr>
+%rows
+<tr><th colspan=5><a name="add"/>Добавить новый тип:</th></tr>
+<form name="insertmime" method="get" action="%script">
+<input type="hidden" name="do" value="type-insert">
+<tr>
+  <td>&nbsp;</td>
+  <td><input type="text" size=30 name="type" value=""></td>
+  <td><input type="text" size=40 name="descr" value=""></td>
+  <td><input type="submit" value="добавить"></td>
+</tr>
+</form>
+</table>
+
+#TEMPLATE type_empty
+#
+#  %script
+#
+<tr><td colspan=4>Ничего нет.</td></tr>
+
+#TEMPLATE type_row
+#
+#  %script, %id, %type, %descr
+#
+<form name="edittype%id" method="get" action="%script">
+<input id="do%id" type="hidden" name="do" value="type-update">
+<tr>
+  <td><input type="text" size=3 readonly="yes" name="id" value="%id"></td>
+  <td><input type="text" size=30 name="type" value="%type"></td>
+  <td><input type="text" size=40 name="descr" value="%descr"></td>
+  <td>
+    <div id="vdivc%id" class="open" style="width:310px;overflow:auto;">%htmlcompat [<a href="javascript:void(0);" onclick="return openEdit('c%id');" style="font-weight:bold">изменить</a>]</div>
+    <div id="edivc%id" class="closed" style="width:310px;">
+      <textarea rows=8 style="width:300px" name="compat">%compat</textarea><br>
+      [<a href="javascript:void(0);" onclick="return closeEdit('c%id');" style="font-weight:bold">спрятать</a>]
+    </div>
+   </td>
+  <td><input id="submit%id" type="submit" value="сохранить">[<a href="javascript:void(0);" onclick="return setSubmitDelete('%id');" style="color:red;font-weight:bold">x</a>]</td>
+</tr>
+</form>
+
+#TEMPLATE type_edit
+#
+#  %script
+#  %id
+#  %class
+#  %descr
+#  %do
+#
+<center>Выполнение функции отдельного редактирования в данном модуле не предусмотрена. Дорогая редакция приносит искренние соболезнования и просит проверить ссылки.
+</center>
+<br>

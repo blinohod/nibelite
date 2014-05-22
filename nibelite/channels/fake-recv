@@ -1,0 +1,84 @@
+#!/usr/bin/env perl 
+
+use 5.8.0;
+use strict;
+use warnings;
+
+NetSDSApp->run(
+	daemon    => 0,
+	infinite  => 0,
+	has_conf  => 1,
+	conf_file => '/opt/nibelite/etc/channels/fake.conf',
+	mode      => 'receiver',
+);
+
+1;
+
+package NetSDSApp;
+
+use warnings;
+use strict;
+
+use Getopt::Long;
+use Data::Dumper;
+use JSON;
+
+use lib '/opt/nibelite/lib/perl';
+use base 'Nibelite::App::Channel';
+
+sub start {
+
+	my ($this) = @_;
+
+}
+
+sub process {
+
+	my ($this) = @_;
+
+	$this->{to_finalize} = 1;    # Only one SMS
+
+	my $from = undef;
+	my $to   = undef;
+	my $smsc = undef;
+	my $text = undef;
+
+	my $result = GetOptions(
+		"from=s" => \$from,
+		"to=s"   => \$to,
+		"smsc=s" => \$smsc,
+		"text=s" => \$text,
+	);
+
+	unless ( $from and $to and $smsc and $text ) {
+		warn "Usage:\n";
+		warn "\tfake.send.pl --from=<from> --to=<to> --smsc=<smsc> --text=<text>\n";
+		return undef;
+	}
+
+	$from =~ s/\+//g;    # Clear leading '+'
+
+	my $src_app_id = $this->determine_chan_app( $smsc, $to );
+
+	if ( !$src_app_id ) {
+		print "Can't determine src_app_id: smsc='$smsc'; SN='$to'\n";
+		return undef;
+	}
+
+	# Process MO SM from subscriber's phone
+
+	print "Test MO SM: smsc='$smsc'; from='$from'; to='$to'\n";
+
+	return {
+		src_app_id => $src_app_id,
+		src_addr   => $from,
+		dst_addr   => $to,
+		msg_status => 'NEW',
+		msg_type   => 'SMS_TEXT',
+		msg_body   => $text,
+	};
+
+} ## end sub process
+
+1;
+

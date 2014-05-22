@@ -1,0 +1,183 @@
+*
+{
+  margin: 0;
+  padding: 0;
+}
+
+a
+{
+  color: #381690;
+  text-decoration: none;
+}
+
+body
+{
+  background: #A0B559;
+  font-family: arial,helvetica;
+  color: #381610;
+}
+
+#wrapper
+{
+  display: block;
+  margin: 0;
+  padding: 0 3em;
+}
+
+#header
+{
+  margin: 1em auto 0;
+  display: block;
+  width: 100%;
+  height: 260px;
+  background: url('header.jpg') center center no-repeat;
+}
+
+#header h1
+{
+  padding-top: 55px;
+  text-align: center;
+  font-size: 2.7em;
+}
+
+
+#content-wrapper
+{
+  display: block;
+  margin: 0;
+  padding: 1em;
+  background: white;
+  border-radius: 16px;
+  -moz-border-radius: 16px;
+  -webkit-border-radius: 16px;
+  box-shadow: 0 2px 5px #333;
+  -moz-box-shadow: 0 2px 5px #333;
+  -webkit-box-shadow: 0 2px 5px #333;
+}
+
+#content
+{
+  display: block;
+  padding: 2.5em 2em 1em;
+  text-align: justify;
+}
+
+#menu
+{
+  margin-bottom: 5em;
+}
+
+#menu ul
+{
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#menu ul li
+{
+  display: inline;	
+}
+
+#menu ul li a
+{
+  padding: .5em;
+  border-bottom: 10px solid #DDDDDD;
+  display: block;
+  float: left;
+  margin: 0 1em 1em 0;
+}
+
+#menu ul li a:hover, #menu ul a.active
+{
+  border-bottom: 10px solid #381610;
+}
+
+/* #content h2
+{
+  padding: 0 .5em 0 0;
+  float: left;
+} */
+
+p
+{
+  margin-bottom: 1em;
+}
+
+ul
+{
+  margin: 1em;
+}
+
+blockquote
+{
+  padding: 1em;
+  background: #DDDDDD;
+  margin-bottom: 1em;
+}
+
+blockquote p
+{
+  margin: 0;
+}
+
+h2
+{
+  margin-top: 1em;
+}
+
+#footer
+{
+  display: block;
+  height: 50px;
+  text-align: center;
+  font-size: .7em;
+  margin: 1em 0;
+  padding: 1em;
+  background: white;
+  border-radius: 16px;
+  -moz-border-radius: 16px;
+  -webkit-border-radius: 16px;
+  box-shadow: 0 2px 5px #333;
+  -moz-box-shadow: 0 2px 5px #333;
+  -webkit-box-shadow: 0 2px 5px #333;
+}
+
+#footer p
+{
+  border-top: 1px dotted #888888;
+  padding-top: .5em;
+  margin: 0 3em;
+}
+
+table.content
+{
+  margin: 1em 0;
+  border: none;
+  background: white;
+  padding: 0;
+  border-collapse: collapse;
+}
+
+table.content tr th
+{
+  margin: 0;
+  padding: 0.5em;
+  text-align: left;
+  background: white;
+  font-weight: bold;
+  border-top: none;
+  border-right: none;
+  border-left: none;
+  border-bottom: 2px solid #381610;
+  border-collapse: collapse;
+}
+
+table.content tr td
+{
+  margin: 0;
+  padding: 0.25em;
+  background: white;
+  border: none;
+  border-collapse: collapse;
+}

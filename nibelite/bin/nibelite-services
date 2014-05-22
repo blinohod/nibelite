@@ -1,0 +1,399 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use 5.8.0;
+
+use lib '/opt/nibelite/lib/perl';
+
+NibeliteSrv->run();
+
+1;
+
+package NibeliteSrv;
+
+use Nibelite::SQL;
+use Digest::MD5 qw(md5_hex);
+use base 'Nibelite::App::CLI';
+
+sub listing {
+	my ( $this, $href, $order, $delimiter ) = @_;
+	unless ($delimiter) {
+		$delimiter = '|';
+	}
+	my @buf;
+	foreach my $key (@$order) {
+		unless ( defined( $href->{$key} ) ) {
+			$href->{$key} = "";
+		}
+		$href->{$key} =~ s/\n/\\n/g;
+		$href->{$key} =~ s/\r/\\r/g;
+		$href->{$key} =~ s/\\/\\\\/g;
+		$href->{$key} =~ s/\|/\\|/g;
+		push @buf, $href->{$key};
+	}
+	return join( $delimiter, @buf );
+}
+
+sub action_srv_list {
+	my ( $this, %params ) = @_;
+	my $filter = ( defined( $params{__non_options__} ) and $params{__non_options__} ) || [];
+	my $sql = Nibelite::SQL->select(
+		fields => {
+			id      => 'cs.id',
+			service => 'cs.service',
+			descr   => 'cs.descr',
+			uri     => 'cs.uri',
+			visible => 'cs.visible'
+		},
+		tables => { 'cs' => 'core.services' },
+		order => [ [ 'service', 'asc' ] ]
+	);
+
+	if ( $params{visible} ) {
+		$sql->where( ["cs.visible"] );
+	}
+
+	if ( scalar(@$filter) ) {
+		my $i = 0;
+		foreach my $f (@$filter) {
+			$sql->where( ["cs.service ILIKE :term_$i OR cs.descr ILIKE :term_$i"] );
+			$f =~ s/([%_])/\\$1/g;
+			$sql->params( { "term_$i" => "%$f%" } );
+			$i++;
+		}
+	}
+	my $sth = $sql->find( $this->dbh );
+	my $order = [ 'id', 'service', 'descr', 'uri', 'visible' ];
+	my @buf;
+	print STDOUT join( "|", @$order ) . "\n";
+	while ( my $row = $sth->fetchrow_hashref() ) {
+		if ( $row->{visible} ) {
+			$row->{visible} = 'true';
+		} else {
+			$row->{visible} = 'false';
+		}
+		print STDOUT $this->listing( $row, $order ) . "\n";
+	}
+} ## end sub action_srv_list
+
+sub action_actions_list {
+	my ( $this, %params ) = @_;
+	my $filter = ( defined( $params{__non_options__} ) and $params{__non_options__} ) || [];
+	my $sql = Nibelite::SQL->select(
+		fields => {
+			id      => 'ca.id',
+			service => 'cs.service',
+			action  => 'ca.action',
+			descr   => 'ca.descr',
+			visible => 'ca.visible'
+		},
+		tables => { 'ca' => 'core.actions' },
+		joins  => ['JOIN core.services cs ON (cs.id = ca.service_id)'],
+		order => [ [ 'service', 'asc' ], [ 'action', 'asc' ] ]
+	);
+
+	if ( $params{visible} ) {
+		$sql->where( ["ca.visible"] );
+	}
+
+	if ( $params{service} ) {
+		$sql->where( ["cs.service = :service"] );
+		$sql->params( { service => $params{service} } );
+	}
+
+	if ( $params{group} ) {
+		$sql->joins(
+			[
+				"JOIN core.rights cr ON (cr.action_id = ca.id)",
+				"JOIN core.groups cg ON (cg.id = cr.group_id)"
+			]
+		);
+		$sql->where( ["cg.group_name = :group"] );
+		$sql->params( { group => $params{group} } );
+	}
+
+	if ( scalar(@$filter) ) {
+		my $i = 0;
+		foreach my $f (@$filter) {
+			$sql->where( ["ca.action ILIKE :term_$i OR ca.descr ILIKE :term_$i"] );
+			$f =~ s/([%_])/\\$1/g;
+			$sql->params( { "term_$i" => "%$f%" } );
+			$i++;
+		}
+	}
+
+	my $sth = $sql->find( $this->dbh );
+	my $order = [ 'id', 'service', 'action', 'descr', 'visible' ];
+	my @buf;
+	print STDOUT join( "|", @$order ) . "\n";
+	while ( my $row = $sth->fetchrow_hashref() ) {
+		if ( $row->{visible} ) {
+			$row->{visible} = 'true';
+		} else {
+			$row->{visible} = 'false';
+		}
+		print STDOUT $this->listing( $row, $order ) . "\n";
+	}
+} ## end sub action_actions_list
+
+sub action_srv_add {
+	my ( $this, %params ) = @_;
+	my $name = ( defined( $params{__non_options__} ) and scalar( @{ $params{__non_options__} } ) and $params{__non_options__}->[0] ) || "";
+	unless ($name) {
+		$this->speak("srv-add: missing service name");
+		$this->exitcode(1);
+		return undef;
+	}
+	my $field_map    = {};
+	my @fields       = ('service');
+	my @values       = ( $name, );
+	my @placeholders = ( '?', );
+	foreach my $field (qw(descr uri visible)) {
+		if ( defined( $params{$field} ) ) {
+			push @fields, $field;
+			push @values, $params{$field};
+			if ( defined( $field_map->{$field} ) ) {
+				push @placeholders, $field_map->{$field};
+			} else {
+				push @placeholders, '?';
+			}
+		}
+	}
+	my $sql = "INSERT INTO core.services (%s) VALUES (%s)";
+	eval { my $res = $this->dbh->call( sprintf( $sql, join( ", ", @fields ), join( ", ", @placeholders ) ), @values ); };
+	if ($@) {
+		$this->speak( "Could not add service: " . $this->dbh->dbh->errstr );
+		$this->exitcode(1);
+	}
+} ## end sub action_srv_add
+
+sub get_service_by_name {
+	my ( $this, $service ) = @_;
+	my $res = $this->dbh->fetch_call( "SELECT id FROM core.services WHERE service = ?", $service );
+	if ( ( ref($res) eq 'ARRAY' ) && scalar(@$res) ) {
+		return $res->[0]->{id};
+	}
+	return undef;
+}
+
+sub action_srv_del {
+	my ( $this, %params ) = @_;
+	my $name = ( defined( $params{__non_options__} ) and scalar( @{ $params{__non_options__} } ) and $params{__non_options__}->[0] ) || "";
+	unless ($name) {
+		$this->speak("srv-del: missing service name.");
+		$this->exitcode(1);
+		return undef;
+	}
+	my $sql = "DELETE FROM core.services WHERE service = ?";
+	eval { my $res = $this->dbh->call( $sql, $name ); };
+	if ($@) {
+		$this->speak( "Could not delete service: " . $this->dbh->dbh->errstr );
+		$this->exitcode(1);
+	}
+}
+
+sub action_action_add {
+	my ( $this, %params ) = @_;
+	my $name = ( defined( $params{__non_options__} ) and scalar( @{ $params{__non_options__} } ) and $params{__non_options__}->[0] ) || "";
+	my ( $service, $action ) = split /\./, $name;
+	unless ($action) {
+		$this->speak("action-add: missing action name");
+		$this->exitcode(1);
+		return undef;
+	}
+
+	my $service_id = $this->get_service_by_name($service);
+
+	if ( !$service_id && $params{create} ) {
+		$this->action_srv_add( __non_options__ => [$service] );
+		$service_id = $this->get_service_by_name($service);
+	} elsif ( !$service_id ) {
+		$this->speak("action-add: service $service does not exist.");
+		$this->exitcode(1);
+		return undef;
+	}
+
+	my $field_map    = {};
+	my @fields       = ( 'service_id', 'action' );
+	my @values       = ( $service_id, $action );
+	my @placeholders = ( '?', '?' );
+	foreach my $field (qw(descr visible)) {
+		if ( defined( $params{$field} ) ) {
+			push @fields, $field;
+			push @values, $params{$field};
+			if ( defined( $field_map->{$field} ) ) {
+				push @placeholders, $field_map->{$field};
+			} else {
+				push @placeholders, '?';
+			}
+		}
+	}
+
+	my $sql = "INSERT INTO core.actions (%s) VALUES (%s)";
+	eval { my $res = $this->dbh->call( sprintf( $sql, join( ", ", @fields ), join( ", ", @placeholders ) ), @values ); };
+	if ($@) {
+		$this->speak( "Could not add action: " . $this->dbh->dbh->errstr );
+		$this->exitcode(1);
+	}
+} ## end sub action_action_add
+
+sub get_action_id_by_name {
+	my ( $this, $service, $action ) = @_;
+	my $service_id = $this->get_service_by_name($service);
+	if ($service_id) {
+		my $res = $this->dbh->fetch_call( "SELECT id FROM core.actions WHERE service_id = ? AND action = ?", $service_id, $action );
+		if ( scalar(@$res) ) {
+			return $res->[0]->{id};
+		}
+	}
+	return undef;
+}
+
+sub action_action_del {
+	my ( $this, %params ) = @_;
+	my $name = ( defined( $params{__non_options__} ) and scalar( @{ $params{__non_options__} } ) and $params{__non_options__}->[0] ) || "";
+	my ( $service, $action ) = split /\./, $name;
+	unless ($action) {
+		$this->speak("action-del: missing action name");
+		$this->exitcode(1);
+		return undef;
+	}
+
+	my $action_id = $this->get_action_id_by_name( $service, $action );
+	unless ($action_id) {
+		$this->speak("action-del: the action $service.$action does not exist.");
+		$this->exitcode(1);
+		return undef;
+	}
+
+	my $sql = "DELETE FROM core.actions WHERE id = ?";
+	eval { my $res = $this->dbh->call( $sql, $action_id ); };
+	if ($@) {
+		$this->speak( "Could not delete action: " . $this->dbh->dbh->errstr );
+		$this->exitcode(1);
+	}
+} ## end sub action_action_del
+
+sub get_group_id_by_name {
+	my ( $this, $name ) = @_;
+	if ( $name =~ /^\d+$/ ) {
+		return $name;
+	}
+	my $rows = $this->dbh->fetch_call( "SELECT id FROM core.groups WHERE group_name = ?", $name );
+	unless ( scalar(@$rows) ) {
+		return undef;
+	}
+	return $rows->[0]->{id};
+}
+
+sub action_action_group_add {
+	my ( $this, %params ) = @_;
+	my $name = ( defined( $params{__non_options__} ) and scalar( @{ $params{__non_options__} } ) and $params{__non_options__}->[0] ) || "";
+	my ( $service, $action ) = split /\./, $name;
+	unless ($action) {
+		$this->speak("action-group-add: missing action name");
+		$this->exitcode(1);
+		return undef;
+	}
+	my $groupname = ( $params{__non_options__}->[1] ) || "";
+	unless ($groupname) {
+		$this->speak("action-group-add: missing group name");
+		$this->exitcode(1);
+		return undef;
+	}
+	my $action_id = $this->get_action_id_by_name( $service, $action );
+	my $group_id = $this->get_group_id_by_name($groupname);
+	unless ($action_id) {
+		$this->speak("action-group-add: action $service.$action not found");
+		$this->exitcode(1);
+		return undef;
+	}
+	unless ($group_id) {
+		$this->speak("action-group-add: group $groupname not found");
+		$this->exitcode(1);
+		return undef;
+	}
+	my $sql = "INSERT INTO core.rights (group_id, action_id) VALUES (?, ?)";
+	eval { my $res = $this->dbh->call( $sql, $group_id, $action_id ); };
+	if ($@) {
+		$this->speak( "Could not install access right: " . $this->dbh->dbh->errstr );
+		$this->exitcode(1);
+	}
+
+} ## end sub action_action_group_add
+
+sub action_action_group_del {
+	my ( $this, %params ) = @_;
+	my $name = ( defined( $params{__non_options__} ) and scalar( @{ $params{__non_options__} } ) and $params{__non_options__}->[0] ) || "";
+	my ( $service, $action ) = split /\./, $name;
+	unless ($action) {
+		$this->speak("action-group-del: missing action name");
+		$this->exitcode(1);
+		return undef;
+	}
+	my $groupname = ( $params{__non_options__}->[1] ) || "";
+	unless ($groupname) {
+		$this->speak("action-group-del: missing group name");
+		$this->exitcode(1);
+		return undef;
+	}
+	my $action_id = $this->get_action_id_by_name( $service, $action );
+	my $group_id = $this->get_group_id_by_name($groupname);
+	unless ($action_id) {
+		$this->speak("action-group-del: action $service.$action not found");
+		$this->exitcode(1);
+		return undef;
+	}
+	unless ($group_id) {
+		$this->speak("action-group-del: group $groupname not found");
+		$this->exitcode(1);
+		return undef;
+	}
+	my $sql = "DELETE FROM core.rights WHERE group_id = ? AND action_id = ?)";
+	eval { my $res = $this->dbh->call( $sql, $group_id, $action_id ); };
+	if ($@) {
+		$this->speak( "Could not delete access right: " . $this->dbh->dbh->errstr );
+		$this->exitcode(1);
+	}
+
+} ## end sub action_action_group_del
+
+sub action_help {
+	my ( $this, %params ) = @_;
+	my $context = 'usage';
+	if ( defined( $params{__non_options__} ) && scalar( @{ $params{__non_options__} } ) ) {
+		$context = $params{__non_options__}->[0];
+	}
+	my $ctxmap = {
+		'usage'      => "Usage:\n\n\t$0 [command] [parameters...] [--option=value] [--option=value] ...\n\n" . "where command is one of\n" . "\taction-add\t\tAdd an action\n" . "\taction-del\t\tDelete an action\n" . "\taction-group-add\tAssign an action to a group\n" . "\taction-group-del\tUnassign an action from a group\n" . "\tactions-list\t\tList available actions\n" . "\tsrv-add\tAdd a service\n" . "\tsrv-del\tDelete a service\n",
+		'action-add' => "action-add - add an action\n\n"
+		  . "Usage: $0 action-add <service.action> [--create] [--visible=0|1] [--descr=description]\n\n"
+		  . "--create Create service if it does not exist\n\n",
+		'action-del'       => "action-del - delete an action\n\n" . "Usage: $0 action-del <service.action>\n",
+		'action-group-add' => "action-group-add - assign an action to a group\n\n" . "Usage: $0 action-group-add <service.action> <group name>\n\n",
+		'action-group-del' => "action-group-del - unassign an action from a group\n\n" . "Usage: $0 action-group-del <service.action> <group name>\n\n",
+		'actions-list'     => "actions-list - list available actions\n\nUsage: $0 actions-list [filter] [--visible] [--service=srvname] [--group=groupname]\n\n"
+		  . "--service=srv List only actions from service srv\n"
+		  . "--group=grp List only actions assigned to group grp\n"
+		  . "--visible List visible actions only\n\n"
+		  . "filter searches in action name and description.\n\n",
+		'srv-add' => "srv-add - add a service\n\n"
+		  . "Usage: $0 srv-add <name> [--uri=uri] [--descr=description] [--visible=0|1]\n\n",
+		'srv-del' => "srv-del - delete a service\n\n"
+		  . "Usage: $0 srv-del <name>\n\n",
+		'srv-list' => "srv-list - list services\n\n"
+		  . "Usage: $0 srv-list [filter] [--visible]\n\n"."--visible List obly visible services\n\nfilter searches in service names and descriptions.\n\n",
+	};
+	if ( $ctxmap->{$context} ) {
+		print STDOUT $ctxmap->{$context};
+	} else {
+		print STDOUT "Sorry, there is no help for this topic ($context).\n";
+	}
+} ## end sub action_help
+
+sub action_unknown {
+	return action_help(@_);
+}
+
+1;

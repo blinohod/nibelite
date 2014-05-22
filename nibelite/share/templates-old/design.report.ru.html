@@ -1,0 +1,51 @@
+#TEMPLATE report_pagestart
+#
+<html>
+<head>
+  <title>Мастер отчетов : Nibelite</title>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+  <link rel=stylesheet type="text/css" href="/nibelite/control/nibelungd3.css">
+</head>
+<body bgcolor="#ffffff" style="margin: 0px; padding: 20px;">
+#
+#
+#
+#TEMPLATE report_pageend
+#
+</body>
+</html>
+#
+#
+#
+#TEMPLATE report_init
+#  %since
+#  %till
+#  %script
+#  %mode
+<script type="application/x-javascript">
+<!--
+	$(function(){
+		$('select[name="mode"]').change(function () {
+			var loc = window.location;
+			var uri = loc.protocol + '//' + loc.host + loc.pathname + '?do=report-init&mode=' + $(this).val();
+			window.location.assign(uri);
+		});
+	});
+//-->
+</script>
+<center>
+<table class=content>
+<form method=get action="%script" target="_blank">
+<input type=hidden name=do value="report-report">
+<tr><th colspan=2>Входящие параметры отчета</th></tr>
+<tr><td>Тип отчета</td><td>Вид отчета</td></tr>
+<tr><td>%mode</td><td>%view</td></tr>
+<tr><td>С даты (включая)</td><td>по дату (включая)</td></tr>
+<tr><td>%since</td><td>%till</td></tr>
+%additional
+<tr><td colspan="2" style="text-align:center"><input type=submit %disable value="Создать отчет"></td></tr>
+</form>
+</table>
+</center>
+<br>
+

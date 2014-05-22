@@ -1,0 +1,152 @@
+# $Id: design.partners.html 159 2008-02-19 11:20:55Z misha $
+
+#translate cms_head_partners Партнёрская программа
+
+#TEMPLATE partners_table
+#
+#  %rows
+#
+<script type="application/x-javascript">
+	<!--
+function setSubmitDelete(what){
+  if(document.getElementById){
+    elDo = document.getElementById('do'+what);
+    elSubmit = document.getElementById('submit'+what);
+    if(elDo){
+      if(elDo.value == 'partners-update'){
+        elDo.value = 'partners-delete';
+        if(elSubmit)
+          elSubmit.value = 'удалить?!';
+      }else{
+        elDo.value = 'partners-update';
+        if(elSubmit)
+          elSubmit.value = 'сохранить';
+      }
+    }
+  }
+}
+function openEdit(someid){
+  if(document.getElementById){
+    elView = document.getElementById('vdiv'+someid);
+    elEdit = document.getElementById('ediv'+someid);
+    if(elView){
+      elView.className = 'closed';
+    }
+    if(elEdit){
+      elEdit.className = 'open';
+    }
+  }
+}
+function closeEdit(someid){
+  if(document.getElementById){
+    elView = document.getElementById('vdiv'+someid);
+    elEdit = document.getElementById('ediv'+someid);
+    if(elView){
+      elView.className = 'open';
+    }
+    if(elEdit){
+      elEdit.className = 'closed';
+    }
+  }
+}
+
+	-->
+</script>
+<style type="text/css">
+.open { display:block; }
+.closed { display:none; }
+.blind {
+	border-top: 1px solid #ffffff;
+	border-bottom: 1px solid #cccccc;
+}
+</style>
+<div style="text-align:right">[<a href="%script?do=partners-access">включить новые пароли</a>]</div>
+<table class=content width=100%>
+	<tr>
+		<th width="10%">ID</th>
+		<th width="30%">Партнёр</th>
+		<th width="30%">Контакт</th>
+		<th width="20%">Доступ</th>
+		<th width="10%">Действия</th>
+	</tr>
+</table>
+%rows
+<table class=content width=100%><tr><th colspan=5><a name="add"/>Добавить нового партнёра:</th></tr>
+<form name="insertpartners" method="get" action="%script">
+<input type="hidden" name="do" value="partners-insert">
+<tr>
+	<td width="10%">&nbsp;</td>
+	<td width="30%" style="text-align:right">
+		Название: <input type="text" size=30 name="title" value=""><br>
+		Сайт: <input type="text" size=30 name="url" value="http://"><br>
+	</td>
+	<td width="30%" style="text-align:right">
+		Контактное лицо:<br>
+		<input type="text" size=30 name="person" value=""><br>
+		E-mail: <input type="text" size=30 name="email" value=""><br>
+		Телефон: <input type="text" size=30 name="phone" value="+380">
+	</td>
+	<td width="30%" style="text-align:right">
+		Логин: <input type="text" size=10 name="login" value=""><br>
+		Пароль: <input type="text" size=10 name="password" value=""><br>
+	</td>
+	<td width="10%"><input type="submit" value="создать"></td>
+</tr>
+</form>
+</table>
+
+#TEMPLATE partners_empty
+#
+#  %script
+#
+<center>Ничего нет. Немедленно добавьте новую запись!</center>
+
+#TEMPLATE partners_row
+#
+#  %script, %id, %ext, %mime_type
+#
+<div class="open" id="vdiv%id"><table class="blind" width="100%" border=0 cellspacing=2 cellpadding=0>
+	<tr>
+		<td width="10%"><a name="anc%id"><b>%id</b></a></td>
+		<td width="30%">%title<br>%url</td>
+		<td width="30%">%person<br>%email<br>%phone</td>
+		<td width="20%">%login<br><span style="color:#cccccc">%password</span></td>
+  		<td width="20%" style="text-align:center;">
+  			[<a href="%script?do=triggers-list&amp;filter=%id">список&nbsp;кодов</a>]<br>
+  			[<a href="javascript:void(0);" onclick="return openEdit('%id');">изменить</a>]</td>
+	</tr>
+</table></div><div class="closed" id="ediv%id"><table width="100%" class="content"><form name="editpartners%id" method="get" action="%script"><input id="do%id" type="hidden" name="do" value="partners-update">
+	<tr>
+		<td width="10%"><input type="text" size="3" readonly="yes" name="id" value="%id"></td>
+		<td width="30%" style="text-align:right">
+			Название: <input type="text" size=30 name="title" value="%title"><br>
+			Сайт: <input type="text" size=30 name="url" value="%url"><br>
+		</td>
+		<td width="30%" style="text-align:right">
+			Контактное лицо:<br>
+			<input type="text" size=30 name="person" value="%person"><br>
+			E-mail: <input type="text" size=30 name="email" value="%email"><br>
+			Телефон: <input type="text" size=30 name="phone" value="%phone">
+		</td>
+		<td width="30%" style="text-align:right">
+			Логин: <input type="text" size=10 name="login" value="%login"><br>
+			Пароль: <input type="text" size=10 name="password" value="%password"><br>
+		</td>
+		<td width="20%" style="text-align:center"><input id="submit%id" type="submit" value="сохранить"><br>
+			[<a href="javascript:void(0);" onclick="return setSubmitDelete('%id');" style="color:red;font-weight:bold">удалить</a>]
+			[<a href="javascript:void(0);" onclick="return closeEdit('%id');" style="font-weight:bold">отмена</a>]
+		</td>
+	</tr>
+</form></table></div>
+
+#TEMPLATE partners_edit
+#
+#  %script
+#  %id
+#  %class
+#  %descr
+#  %do
+#
+<center>Выполнение функции отдельного редактирования в данном модуле не предусмотрена. Дорогая редакция приносит искренние соболезнования и просит проверить ссылки.
+</center>
+<br>

@@ -1,0 +1,65 @@
+#TEMPLATE page
+#  %page_title
+#  %page_head
+#  %page_menu
+#  %page_main
+#  %version
+#
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head>
+  <title>%page_title | NetSDS IV Nibelite</title>
+  <meta name="AUTHOR" content="misha@netstyle.com.ua">
+  <meta name="AUTHOR" content="zmeuka@netstyle.com.ua">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" type="text/css" href="/nibelite/control/nibelungd3.css">
+	<!-- jQuery -->
+	<link type="text/css" href="/jquery-ui/css/jquery-ui.css" rel="stylesheet" />
+	<link type="text/css" href="/jquery/plugins/timepicker-addon/jquery-ui-timepicker-addon.css" rel="stylesheet" />
+	<script type="text/javascript" src="/jquery/jquery.js"></script>
+	<script type="text/javascript" src="/jquery-ui/jquery-ui.js"></script>
+	<script type="text/javascript" src="/jquery/plugins/timepicker-addon/jquery-ui-timepicker-addon.js"></script>
+	<script type="text/javascript" src="/jquery/plugins/timepicker-addon/localization/jquery-ui-timepicker-ru.js"></script>
+  <link rel="SHORTCUT ICON" href="/nibelite/control/favicon.ico">
+</head>
+
+<body><!-- these two-line comments - for MSIE whitespace sencitivity-->
+  <div id="logo">
+    <b>NetSDS IV (Nibelite)</b><br>VAS Application Server<br><small>&copy;2004-2011 <a href="http://www.netstyle.com.ua/" target="_blank" style="color:white">Net Style Ltd.</a></small>
+  </div><!-- -->
+  <div id="topmenu">
+	%main_menu
+</div><!--
+--><div id="topmodule">
+  %page_head
+</div><!--
+--><div id="submenu">
+  %page_menu
+</div>
+<div id="status">&nbsp;%page_status&nbsp;</div>
+<div id="main">%page_main</div><!--
+Execution Time: %page_time
+--></body>
+
+#TEMPLATE popup
+#  %page_title
+#  %page_main
+#
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <title>%page_title | NetSDS IV Lite</title>
+  <meta name="AUTHOR" content="misha@netstyle.com.ua">
+  <meta name="AUTHOR" content="zmeuka@netstyle.com.ua">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <link rel="stylesheet" type="text/css" href="/nibelungd3.css">
+</head>
+<body><div id="main">
+%page_main
+<br><div align="right"><small><a href="javascript:{void(0);}" onClick="window.opener.parent.location.reload();window.close()">закрыть <span style="color:red">[x]</span></a></small></div>
+</div></body>
+</html>
+
+#TEMPLATE dummy
+not used

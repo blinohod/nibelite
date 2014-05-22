@@ -1,0 +1,335 @@
+/**
+ * Nibelite V main CSS Stylesheet
+ * 
+ * Note the most UI styling have based on JQuery UI CSS classes.
+ * There are only positioning and b&w not found in the JQUI theme.
+ * We are trying to maintain compatibility with theme switching.
+ * 
+ * Thank you for your convenience.
+ * 
+ * Anatoly 'zmeuka' Matyakh <protopartorg@gmail.com> 2011-10-18
+ **/
+
+body {
+	font-family: Lucida Grande, Lucida Sans, Arial, sans-serif; 
+	font-size: 11px;
+}
+
+/* Header (logo + crumbs + links) container */
+#nlHead {
+	position: relative;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 36px;
+} 
+
+#nlCrumbs {
+	float: left;
+	width: 45%;
+	font-size: 18px;
+	line-height: 32px;
+	padding: 0 0 0 8px;
+	color: #666;
+}
+
+#nlCrumbs img {
+	vertical-align: middle;
+}
+
+#nlCrumbs span {
+	color: #999;
+}
+
+#nlLinks {
+	color: #666;
+	float: right;
+	text-align: right;
+	width: 45%;
+	font-size: 16px;
+	line-height: 32px;
+	padding: 0 8px 0 0;
+	text-transform: lowercase;
+}
+
+#nlLinks a, #nlLinks a:link, #nlLinks a:visited {
+	text-decoration: none;
+	color: #666;
+}
+
+#nlLinks a:hover, #nlLinks a:active {
+	color: #333;
+}
+
+#nlMain {
+	clear: both;
+	overflow: visible;
+	position: fixed;
+	top: 46px;
+	left: 10px;
+	padding: 0;
+	margin: 0;
+}
+
+#nlMenuContainer {
+	overflow: auto;
+	padding: 4px;
+	margin: 0;
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 200px;
+	list-style: none;
+}
+
+#nlMenuContainer li {
+	margin: 0 0 4px 0;
+}
+
+#nlMenuContainer li div {
+	cursor: pointer;
+	text-transform: uppercase;
+}
+
+#nlMenuContainer li div span {
+	display: inline-block;
+}
+
+#nlMenuContainer li ul {
+	list-style: none;
+	margin: 4px 0 0 0;
+	padding: 0 0 0 8px;
+}
+
+#nlMenuContainer li ul li {
+	margin: 0 0 4px 0;
+	padding: 0 4px;
+	cursor: pointer;
+}
+
+
+#nlSplitter {
+	position: fixed;
+	top: 0;
+	left: 208px;
+	margin: 0;
+	padding: 0;
+	background-color: #eee;
+	width: 6px;
+	cursor: pointer;
+	height: 100%;
+	line-height:0px;font-size:0px;
+	border-left:solid 1px #ccc;border-right:solid 1px #ccc;
+	background:#cbe1fb url(../img/gpanev.png) 0% 50%;
+}
+
+#nlSplitter div {
+	margin-top:-41px;
+	margin-left:-4px;
+	top:50%;
+	position:relative;
+	height:83px;width:10px;
+	background:transparent url(../img/gpanevc.png) 10px 50%;
+}
+
+#nlSplitter div.invert{
+	margin-left:0px;
+	background:transparent url(../img/gpanevc.png) 0px 50%;
+}
+
+#nlBody {
+	position: fixed;
+	top: 0;
+	left: 214px;
+	overflow: auto;
+	margin: 0;
+	padding: 0;
+	float:right;
+}
+
+#nlBody > div {
+	padding: 0;
+}
+
+.nlScreen {
+	padding: 10px;
+}
+
+.nlScreenToolbar {
+	background: #F9F9F9;
+	color: #666;
+	margin: 0;
+	padding: 2px 4px;
+	border-bottom: 1px solid #ccc;
+}
+
+.nlScreenToolbar .ui-button {
+	vertical-align: middle;
+}
+
+.nlToolbarSpan {
+	display: inline-block; 
+	position: relative;
+	vertical-align:middle;
+	line-height: 1.4;
+	padding: 0 .5em 0 0;
+}
+
+.nlToolbarSeparator {
+	display: inline-block; 
+	position: relative;
+	height: 1.5em;
+	vertical-align:middle;
+	width: 1px;
+	padding: 0;
+	margin: 0 1em 0 .5em;
+	background: #ccc;
+/*	line-height: 1.4;
+	padding: .4em 0;
+	border-left: 1px solid #9AC4E2; */
+}
+
+#nlNotify {
+	position: fixed;
+	right: 24px;
+	bottom: 12px;
+	width: 30%;
+	margin:0;
+	padding:0;
+	z-index:999;
+}
+
+#nlNotify div {
+	margin:4px;
+	padding:4px 10px;
+	z-index:999;
+}
+
+
+#nlIcons span, #nlIcons a {
+	display: inline-block;
+	padding: 4px 6px;
+	margin: 0 0 0 4px;
+	line-height: 18px;
+}
+
+#nlUser {
+	font-weight: bold;
+	color: #999;
+}
+
+#nlHistoryDialogList {
+	margin: 5px;
+	padding: 0;
+	height: 200px;
+	overflow: auto;
+	font-size: 0.9em;
+}
+
+#nlLoginTitle { margin: 0; padding: 10px; }
+#nlLoginDialog { position:relative; }
+#nlLoginDialog form { margin: 0; padding: 10px; }
+#nlLoginDialog form div { text-align: right; margin: 10px 0 0; padding: 0; }
+#nlLoginDialog div.small { 
+	margin: 0; 
+	padding: 0; 
+	font-size: 0.8em; 
+	color: #999; 
+	text-align: left;
+	width: 200px;
+	position: absolute;
+	bottom: 10px;
+	left: 10px;
+}
+
+.ui-button-text-only .ui-button-text { padding: .2em 0.5em; }
+.ui-button-icon-only .ui-button-text, .ui-button-icons-only .ui-button-text { padding: .2em; text-indent: -9999999px; }
+.ui-button-text-icon-primary .ui-button-text, .ui-button-text-icons .ui-button-text { padding: .2em .5em .2em 1.6em; }
+.ui-button-text-icon-secondary .ui-button-text, .ui-button-text-icons .ui-button-text { padding: .2em 1.6em .2em .5em; }
+.ui-button-text-icons .ui-button-text { padding-left: 1.6em; padding-right: 1.6em; }
+/* no icon support for input elements, provide padding by default */
+input.ui-button { padding: .2em .5em; }
+
+
+
+.icon {
+	border: none;
+	padding: 0;
+	margin: 0;
+	vertical-align: middle;
+}
+
+.nl-menu {
+	text-align: center;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.nl-menu li {
+	display: inline-block;
+	margin: 0;
+	padding: 0;
+	/* border-left: 1px solid #79b7e7; */
+	font-weight: bold;
+}
+/*
+.nl-menu li:first-child {
+	border-left: none;
+}*/
+
+.nl-menu li a {
+	display: block;
+	margin: 0;
+	padding: 4px 10px;
+}
+
+/*
+.nl-menu li a:hover {
+	background: #5c9ccc; 
+	color: #ffffff;
+}*/
+
+a.rowButton {
+	display: inline-block;
+	margin: 2px;
+	padding: 2px 6px;
+	font-weight: bold;
+	text-decoration: none;
+	background-color: #efefef;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	-moz-border-radius: 4px;
+	-webkit-border-radius: 4px;
+	color: #666;
+}
+a:hover.rowButton {
+	background-color: #e0e0e0;
+	border: 1px solid #999;
+	color: #333;
+}
+
+ul.picklist {
+	margin: 0;
+	padding: 2px 1px;
+	height: 240px;
+	overflow-y: auto;
+	list-style-image: none;
+}
+ul.picklist li {
+	margin: 1px 2px;
+	padding: 4px 2px;
+	background-color: #efefef;
+	color: #336699;
+	display: block;
+	white-space: nowrap;
+}
+ul.picklist li.chgOwn {
+	background-color: #e0e0e0;
+	font-weight: bold;
+}
+
+.blockOverlay {
+	background-color: #ffffff;
+	opacity: 1;
+}

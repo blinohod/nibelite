@@ -1,0 +1,65 @@
+#!/usr/bin/env perl 
+
+use 5.8.0;
+use strict;
+use warnings;
+
+NetSDSApp->run(
+	daemon      => 1,
+	infinite    => 1,
+	has_conf    => 1,
+	use_pidfile => 1,
+	conf_file   => '/opt/nibelite/etc/apps/echotest.conf',
+);
+
+1;
+
+package NetSDSApp;
+
+use lib '/opt/nibelite/lib/perl';
+
+use base 'Nibelite::App::Service';
+
+# Main SMS responder loop
+sub process {
+
+	my ($this) = @_;
+
+	$this->dbh->begin();
+
+	# Fetch 10 messages from queue
+	if ( my @msgs = $this->fetch_messages( $this->app_id, 1 ) ) {
+
+		# Process each message with transport specific logic
+		foreach my $msg (@msgs) {
+
+			$this->log( 'info', 'Incoming message found for echotest [from:' . $msg->{src_addr} . '] [to:' . $msg->{dst_addr} . ']' );
+
+			# Update status of processed incoming SMS
+			$this->mq->update_message( $msg->{id}, msg_status => 'PROCESSED' );
+
+			# Send reply if it's text SMS
+			if ( $msg->{msg_type} eq 'SMS_TEXT' ) {
+
+				# Prepare response merssage
+				my $rep = $this->mq->make_reply(
+					$msg,
+					msg_body => substr( 'You sent: ' . $msg->{msg_body}, 0, 50 ),
+				);
+
+				# Submit response SMS
+				$this->mq->enqueue_message(%$rep);
+			}
+		} ## end foreach my $msg (@msgs)
+
+	} ## end if ( my @msgs = $this->fetch_messages...)
+
+	$this->dbh->commit();
+
+	sleep 1;
+	return 1;
+
+} ## end sub process
+
+1;
+

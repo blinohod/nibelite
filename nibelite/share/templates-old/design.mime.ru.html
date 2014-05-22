@@ -1,0 +1,88 @@
+# $Id: design.mime.html 159 2008-02-19 11:20:55Z misha $
+
+#translate cms_head_mime MIME-типы
+
+#TEMPLATE mime_table
+#
+#  %rows
+#
+<script type="application/x-javascript">
+	<!--
+function setSubmitDelete(what){
+  if(document.getElementById){
+    elDo = document.getElementById('do'+what);
+    elSubmit = document.getElementById('submit'+what);
+    if(elDo){
+      if(elDo.value == 'mime-update'){
+        elDo.value = 'mime-delete';
+        if(elSubmit)
+          elSubmit.value = 'удалить?!';
+      }else{
+        elDo.value = 'mime-update';
+        if(elSubmit)
+          elSubmit.value = 'сохранить';
+      }
+    }
+  }
+}
+	-->
+</script>
+<a href="#add">Щёлкните здесь для добавления mime-типа.</a>
+<table class=content width=100%><tr><th>ID</th><th>Mime</th><th>Тип файла</th><th>Fn</th></tr>
+%rows
+<tr><th colspan=4><a name="add"/>Добавить новый тип:</th></tr>
+<form name="insertmime" method="get" action="%script">
+<input type="hidden" name="do" value="mime-insert">
+<tr>
+  <td>&nbsp;</td>
+  <td><input type="text" size=6 name="ext" value=""></td>
+  <td><input type="text" size=48 name="mime_type" value=""></td>
+  <td><input type="submit" value="добавить"></td>
+</tr>
+</form>
+</table>
+
+#TEMPLATE mime_empty
+#
+#  %script
+#
+<tr><td colspan=4>Ничего нет. <a href="%script?do=mime-add">Щёлкните здесь для добавления записи.</a></td></tr>
+
+#TEMPLATE mime_row
+#
+#  %script, %id, %ext, %mime_type
+#
+<form name="editmime%id" method="get" action="%script">
+<input id="do%id" type="hidden" name="do" value="mime-update">
+<tr>
+  <td><input type="text" size=3 readonly="yes" name="id" value="%id"></td>
+  <td><input type="text" size=6 name="ext" value="%ext"></td>
+  <td><input type="text" size=48 name="mime_type" value="%mime_type"></td>
+  <td><input id="submit%id" type="submit" value="сохранить">[<a href="javascript:void(0);" onclick="return setSubmitDelete('%id');" style="color:red;font-weight:bold">x</a>]</td>
+</tr>
+</form>
+
+#TEMPLATE mime_edit
+#
+#  %script
+#  %id
+#  %class
+#  %descr
+#  %do
+#
+<center>Выполнение функции отдельного редактирования в данном модуле не предусмотрена. Дорогая редакция приносит искренние соболезнования и просит проверить ссылки.
+#<table class=content>
+#<form method=post action="%script">
+#<tr><th>ID</th><th>Класс контента</th></tr>
+#<tr><td><input type=text size=5 maxlength=5 name="id" value="%id"%dis></td>
+#<td><input type=text size=40 maxlength=64 name="class" value="%class"></td></tr>
+#<tr><th>Папа</th><th>Рейтинг, представление</th></tr>
+#<tr><td><input type=text size=5 maxlength=5 name="cat_root" value="%cat_root"></td>
+#<td><input type=text size=5 maxlength=5 name="rank" value="%rank"><input type=text size=40 maxlength=128 name="look" value="%look"></td></tr>
+#<tr><th colspan=2>Описание класса (для человека):</th></tr>
+#<tr><td colspan=2><textarea cols=60 name="descr" rows=8>%descr</textarea></td></tr>
+#<tr><td>&nbsp;</td><td><input type=submit value="  Сохранить  "></td></tr>
+#<input type=hidden name=do value="%do"></form>
+#</table>
+</center>
+<br>

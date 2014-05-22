@@ -1,0 +1,70 @@
+<table width="100%" class="display" id="nlUsersTable">
+	<thead>
+		<tr>
+			<!-- [ 'id', 'login', 'active', 'created', 'expire', 'name', 'email', 'descr' ] -->
+			<th><t>users/th_id</t></th>
+			<th><t>users/th_login</t></th>
+			<th><t>users/th_active</t></th>
+			<th><t>users/th_created</t></th>
+			<th><t>users/th_expire</t></th>
+			<th><t>users/th_name</t></th>
+			<th><t>users/th_email</t></th>
+			<th><t>users/th_descr</t></th>
+			<th>&nbsp;</th>
+		</tr>
+	</thead>
+	<tbody />
+</table>
+
+<div id="usersEditDialog" style="display:none">
+	<div id="usersEditError" style="display:none" class="ui-state-error"></div>
+	<form id="usersEditForm">
+		<input type="hidden" name="id" id="usersEdit_id"/>
+		<table border="0" cellpadding="2" cellspacing="0" width="100%">
+			<tr><th colspan="2" width="65%"><t>users/properties</t></th><th width="35%"><t>users/groups</t></th></tr>
+			<tr>
+				<td><t>users/th_login</t></td>
+				<td><input type="text" name="login" /></td>
+				<td rowspan="8"><div id="usersEditGroups" class="ui-widget-content ui-corner-all" style="overflow:auto;height:250px;"></div></td>
+			</tr>
+			<tr>
+				<td><a href="javascript:void(0)" onclick="{$('#usersEditChangePass').toggle();return false;}"><t>users/th_password</t></a></td>
+				<td><div id="usersEditChangePass" class="ui-corner-all ui-state-default" style="display:none;padding:0.5em;">
+					<t>users/new_password</t><br/>
+					<input type="password" name="newpass1" /><br/>
+					<t>users/retype_password</t><br/>
+					<input type="password" name="newpass2" /><br/>
+				</div></td>
+			</tr>
+			<tr>
+				<td><t>users/th_active</t></td>
+				<td><select name="active"><option value="0"><t>users/active_disabled</t></option><option value="1"><t>users/active_enabled</t></option></select></td>
+			</tr>
+			<tr>
+				<td><t>users/th_created</t></td>
+				<td><input type="text" name="created" disabled="true" /></td>
+			</tr>
+			<tr>
+				<td><t>users/th_expire</t></td>
+				<td><input type="text" name="expire" class="datepicker" /></td>
+			</tr>
+			<tr>
+				<td><t>users/th_name</t></td>
+				<td><input type="text" name="name" /></td>
+			</tr>
+			<tr>
+				<td><t>users/th_email</t></td>
+				<td><input type="text" name="email" /></td>
+			</tr>
+			<tr>
+				<td><t>users/th_descr</t></td>
+				<td><textarea name="descr" rows="4"></textarea></td>
+			</tr>
+		</table>
+	</form>
+</div>
+
+<div style="display:none">
+	<div id="usersTActive"><img class="icon" src="/ico/status_online.png" alt="<t>users/active_enabled</t>" title="<t>users/active_enabled</t>" /></div>
+	<div id="usersTPassive"><img class="icon" src="/ico/status_offline.png" alt="<t>users/active_disabled</t>" title="<t>users/active_disabled</t>" /></div>
+</div>

@@ -1,0 +1,86 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<!-- meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7" / -->
+		<title>Nibelite V</title>
+		
+		<link type="text/css" href="/jquery/plugins/timepicker-addon/jquery-ui-timepicker-addon.css" rel="stylesheet" />
+		
+		<script type="text/javascript" src="/jquery/jquery.js"></script>
+		<script type="text/javascript" src="/jquery/plugins/jquery.form.js"></script>
+		<script type="text/javascript" src="/jquery/plugins/jquery.blockUI.js"></script>
+		<script type="text/javascript" src="/jquery/plugins/jquery.dataTables.js"></script>
+		<script type="text/javascript" src="/jquery-ui/jquery-ui.js"></script>
+		<script type="text/javascript" src="/jquery/plugins/timepicker-addon/jquery-ui-timepicker-addon.js"></script>
+		<script type="text/javascript" src="js/nibelite.js"></script>
+		<script type="text/javascript" src="js/tables.js"></script>
+
+		<link type="text/css" href="css/ui-lighthex/jquery-ui.css" rel="stylesheet" />
+		<link type="text/css" href="css/datatables.css" rel="stylesheet" />		
+		<link type="text/css" href="css/nibelite.css" rel="stylesheet" />	
+		
+	</head>
+	<body>
+		<div id="nlHead">
+			<div id="nlCrumbs">
+				<img src="img/ns-logo-small.png" alt="NetStyle" />
+				<b>Nibelite 5</b>
+				<span></span>
+			</div>
+			<div id="nlLinks">
+				<img src="/ico/user_suit.png" alt="" class="icon" />&nbsp;<b id="nlUser">guest</b>
+				| <a id="nlHistoryButton" href="javascript:void(0)">notifications</a>
+				| <a id="nlLogoutButton" href="javascript:void(0)">logout</a>
+			</div>
+		</div>
+		
+		<div id="nlMain" class="ui-widget-content ui-corner-all">
+			<ul id="nlMenuContainer">
+			</ul>
+			<div id="nlSplitter"><div></div></div>
+			<div id="nlBody">
+				<div id="core-blank">&nbsp;</div>
+			</div>
+		</div>
+
+
+		<div id="nlNotify"></div>
+
+		<div id="nlHistoryDialog" style="display:none"><div class="ui-widget-content ui-corner-all"><ol id="nlHistoryDialogList"></ol></div></div>
+		<div id="nlLoginDialog" class="ui-corner-all ui-widget ui-widget-content" style="display:none">
+			<div id="nlLoginTitle" class="ui-corner-top ui-widget-header"></div>
+			<form method="get" id="nlLoginDialogForm">
+				<center><table border="0" cellpadding="4" cellspacing="0">
+				<tr>
+					<td style="text-align:right"><label for="nlLogin" id="nlLoginLabel">Username:</label></td>
+					<td style="text-align:left"><input type="text" size="20" id="nlLogin" name="user" value="" /></td>
+				</tr>
+				<tr>
+					<td style="text-align:right"><label for="nlPassword" id="nlPasswordLabel">Password:</label></td>
+					<td style="text-align:left"><input type="password" size="20" id="nlPassword" name="password" value="" /></td>
+				</tr>
+				<tr>
+					<td></td>
+					<td style="text-align:left"><input type="checkbox" value="1" id="nlRemember" name="remember" />
+				<label for="nlRemember" id="nlRememberLabel">Remember me</label></td>
+				</tr>
+				</table></center>
+				<div><button id="nlButtonLogin">Enter</button></div>
+			</form>
+			<div class="small" id="nlLoginHost"></div>
+		</div>
+		<div id="nlTrDialog" style="display:none">
+			<table width="100%" border="0" cellpadding="0" cellspacing="4">
+				<tr><td>Language:</td><td><span id="trLanguage"></span></td></tr>
+				<tr><td>Service:</td><td><input type="text" readonly="1" id="trService" /></td></tr>
+				<tr><td>Keyword:</td><td><input type="text" readonly="1" id="trKeyword" /></td></tr>
+				<tr><td>Placeholders:</td><td><span id="trPlaceholders"></span></td></tr>
+				<tr><td>Translation:</td><td><textarea id="trTranslation" rows="3"></textarea></td></tr>
+			</table>
+		</div>
+		
+	</body>
+</html>
+
+

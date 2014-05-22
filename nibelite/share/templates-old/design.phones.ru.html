@@ -1,0 +1,84 @@
+# $Id: design.phones.html 159 2008-02-19 11:20:55Z misha $
+
+#TEMPLATE phones_table
+#
+#  %rows
+#
+<script type="application/x-javascript">
+	<!--
+
+function setSubmitDelete(what){
+  if(document.getElementById){
+    elDo = document.getElementById('do'+what);
+    elSubmit = document.getElementById('submit'+what);
+    if(elDo){
+      if(elDo.value == 'phones-update'){
+        elDo.value = 'phones-delete';
+        if(elSubmit)
+          elSubmit.value = 'удалить?!';
+      }else{
+        elDo.value = 'phones-update';
+        if(elSubmit)
+          elSubmit.value = 'сохранить';
+      }
+    }
+  }
+}
+
+	-->
+</script>
+<table class="content" width="100%"><tr><th>Производитель</th><th>Модель</th><th>User Agent</th></tr>
+%rows
+</table>
+
+#TEMPLATE phones_row
+#
+#  %brand_name, %model_name, %user_agent
+#
+
+<tr>
+  <td width="20%">%brand_name</td>
+  <td width="30%"><a href="%script?do=phones-edit&id=%id">%model_name</a></td>
+  <td width="50%">%user_agent</td>
+</tr>
+
+#TEMPLATE phones_edit
+#
+#  %script
+#  %id
+#  %model_name
+#  %brand_selection
+#  %do
+
+<center><table class="content" width="50%">
+<form method="post" name="edit" action="%script">
+<tr><th>ID</th><th>Производитель</th><th>Название модели</th></tr>
+<tr>
+	<td><input type="hidden" name="id" value="%id"/>%id</td>
+	<td>%brand_selection</td>
+	<td><input type="text" size="60" maxlength="128" name="name" value="%name"></td>
+</tr>
+<tr>
+	<td>&nbsp;</td>
+	<td colspan="2" align="right">
+		<input type="submit" value="  Сохранить  "/>
+		<input type="hidden" name="do" value="%do"/>
+	</td>
+</tr>
+</form>
+</table></center>
+<br/>
+
+#TEMPLATE phones_brand_selection
+#
+# 
+
+<select name="brand_id">
+	%rows
+</select>
+
+#TEMPLATE phones_brand_selection_row
+#
+# 
+
+<option value="%id" %selected>%name</option>

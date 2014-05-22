@@ -1,0 +1,48 @@
+#!/usr/bin/env perl
+
+use 5.8.0;
+use strict;
+use warnings 'all';
+
+use lib '/opt/nibelite/lib/perl';
+
+use base 'Nibelite::App::Admin';
+
+use Data::Dumper;
+
+__PACKAGE__->run(
+	conf_file => '/opt/nibelite/etc/nibelite.conf',
+);
+
+sub validate_list {
+
+	print "Validate";
+
+}
+
+sub process_list {
+
+	my ($this) = @_;
+
+	#return "<h1>Scalar</h1>";
+	$this->template('users_list');
+
+	return {
+		var1 => 12123,
+		var2 => 'asdasd',
+	};
+
+	#return \&out_data;
+
+}
+
+sub out_data {
+
+	my ($this) = @_;
+
+	print "Content-type: text/plain\r\n\r\n";
+	print Dumper($this);
+
+}
+
+1;

@@ -1,0 +1,341 @@
+# $Id: design.content.html 159 2008-02-19 11:20:55Z misha $
+
+# Translations block
+
+# вид
+#translate profile_default			обычный
+#translate profile_royalty			авторские права
+#translate profile_full				подробный
+#translate profile_pictures			картинки
+#translate for						для
+
+#translate binary_removed			данные удалены
+#translate binary_not_removed		ошибка удаления данных
+#translate binary_not_found			данные с таким идентификатором не найдены
+#translate show_images				показать картинки
+#translate hide_images				спрятать картинки
+#translate content_vendors_updated	Поставщик группы контента изменён
+#translate content_codes_granted	Выданы коды
+#translate content_error_nocontent	Ошибка - контент не существует
+#translate content_not_selected		Ошибка - не выбран контент
+#translate invalid_pubs_id			Неправильный идентификатор правообладателя
+#translate content_rights_updated	Авторские права сохранены
+#translate content_rights_deleted	Авторские права удалены
+#translate content_created			Новая запись контента создана
+#translate content_error_storage	Невозможно инициализировать хранилище
+#translate content_storage_nodata	Ошибка доступа к данным
+#translate content_no_id			Неправильный вызов - нет ИД контента
+#translate content_no_datatype		Не указан тип данных
+#translate content_no_mime			Не указан тип MIME
+#translate content_no_uploaded_file	Не загружен файл
+#translate content_file_notsaved	Не удалось сохранить файл
+#translate content_no_dataid		Не указан идентификатор данныхъ
+#translate content_codes_granted    Коды заказа назначены
+#translate content_error_mapping	Ошибка назначения кода
+
+#translate content_compat_granted	Список совместимости сохранён
+#translate content_compat_nodata	Нет данных для списка совместимости "%s"
+#translate content_compat_nomodel	Нет модели "%s"
+
+
+
+#TEMPLATE content_menu
+<a href="%script?do=content-list">управление контентом</a>
+- <a href="%script?do=cat-list">разделы каталога</a>
+
+#TEMPLATE content_default
+<h1>Контент</h1>
+<dl>
+<dt><a href="%script?do=content-list">управление контентом</a></dt>
+<dd>Позволяет осуществлять различные выборки по базе,
+редактировать информацию, производить групповые операции и добавлять новый
+контент.</dd>
+</dl>
+
+#TEMPLATE content_filter
+<script type="application/x-javascript">
+	<!--
+function toggleDiv(someid){
+  if(document.getElementById){
+    el = document.getElementById(someid);
+    if(el){
+      if(el.className=='closed'){
+        el.className = 'open';
+      }else{
+        el.className = 'closed';
+      }
+    }
+  }
+}
+//	-->
+</script>
+<style type="text/css">
+.open { display:block; }
+.closed { display:none; }
+</style>
+<form method=post action="%script"><input type=hidden name=do value="content-list"><center><table class=content>
+<tr><th>Вид</th><th>Класс</th><th>Вкл/выкл</th><th>Поиск</th><th>Кол-во</th><th>Ну?</th></tr>
+<tr>
+	<td>%profile</td>
+	<td>%class</td>
+	<td>%active</td>
+	<td><input type=text name="fsearch" value="%fsearch" size=8></td>
+	<td><input type=text name="lim" value="%lim" size=3></td>
+	<td><input type=submit value="ОК"></td>
+</tr></table></center>
+<div id="divAdvanced" class="%advanced">
+	<center><table class=content>
+		<tr><th>Правообладатель</th><th>Каталог</th></tr>
+		<tr><td>%copy</td><td>%cat</td></tr>
+	</table></center>
+</div>
+</form>
+<div style="text-align:right"><small>
+	[<a href="%script?do=content-add">создать контент</a>]
+	[<a href="javascript:void(0);" onclick="return toggleDiv('divAdvanced');">расширенный поиск</a>]
+</small></div>
+<br>
+
+#TEMPLATE content_nav
+<div align=center>%nav</div>
+<br>
+
+#TEMPLATE content_qty
+<div align=center><b>Найдено записей: %qty</b></div>
+
+#TEMPLATE content_table
+<script language=javascript><!--
+var ids = new Array(%ids);
+
+function selectall(v){
+  for(i=0;i<ids.length;i++){
+    eval("document.mainform.elements['sel["+ids[i]+"]'].checked = "+v+";");
+  }
+  return 0;
+}
+
+function divShow(id){
+  if(document.getElementById(id)){
+    document.getElementById(id).style.display = 'block';
+  }
+}
+
+function divHide(id){
+  if(document.getElementById(id)){
+    document.getElementById(id).style.display = 'none';
+  }
+}
+
+function divSwitcher(where){
+  divHide('dcat');divHide('dmeta');divHide('drights');divHide('dmapadd');
+  switch(where){
+    case 'content-gcat':
+    case 'content-guncat':
+        divShow('dcat');
+        break;
+    case 'content-gmeta':
+        divShow('dmeta');
+        break;
+    case 'content-grights':
+    case 'content-gunrights':
+        divShow('drights');
+        break;
+    case 'content-gmapadd':
+        divShow('dmapadd');
+        break;
+  }
+}
+
+--></script>
+<form method=post name=mainform action="%script">
+<div align=left><small>
+<a href="javascript:{void(0);}" onClick="selectall(true)">отметить все на странице</a> |
+<a href="javascript:{void(0);}" onClick="selectall(false)">снять отметки</a>
+</small></div>
+<table class=content width=100%>
+<tr>%headers</tr>
+%rows
+</table>
+<div align=left><small>групповые операции:</small></div>
+<table class=content width=100%>
+<tr><th>Группа</th><th>Действие</th><th width="100%">Параметры</th><th>&nbsp;</th></tr>
+<tr>
+<td><select name=what>
+<option value="sel" selected>Отмеченные записи
+<option value="all">Все найденные
+</select></td>
+<td><select name=do onChange="divSwitcher(this.options[this.selectedIndex].value);">
+    <option value="content-gcat" selected>Поместить в категорию
+    <option value="content-guncat">Выбросить из категории
+    <option value="content-gmeta">Добавить метаданные
+    <option value="content-grights">Добавить авторские права
+    <option value="content-gunrights">Убрать авторские права
+    <option value="content-gon">Включить
+    <option value="content-goff">Выключить
+    <option value="content-gmap">Назначить коды заказов
+    <option value="content-gmapadd">Продублировать коды заказов для каналов
+</select></td>
+
+<td>
+  <div id="dcat" style="display:block">Категория: %parent</div>
+  <div id="dmeta" style="display:none">
+    Ключ:&nbsp;<input type=text size=10 name="key" value="">
+    Значение:&nbsp;<input type=text size=20 name="value" value="">
+  </div>
+  <div id="drights" style="display:none">
+    Правообладатель:&nbsp;%copy
+    Процент:&nbsp;<input type=text size=6 name="percent" value="100" style="text-align:right;"><b>%</b>
+  </div>
+  <div id="dmapadd" style="display:none">Каналы: %channels</div>
+</td>
+<td><input type=submit value="Марш!"></td>
+</tr>
+<input type=hidden name="lim" value="%lim">
+<input type=hidden name="ofs" value="%ofs">
+</table>
+# what a mess? <table class=content width=100%>
+
+</form>
+
+#TEMPLATE content_data
+<a href="/getdata.php?data_id=%data_id" title="%type" target=_blank>%key</a>&nbsp;(%size)%func<br>
+
+#TEMPLATE content_datamore
+<div id="more%id" style="border-top: 1px dotted #666666;text-align:right;padding:2px 4px;margin: 2px 0px 0px 0px;" onClick="divHide('more%id');divShow('tail%id');">&gt;&gt;&gt;&nbsp;ещё</div><div id="tail%id" style="display:none">%list</div>
+
+#TEMPLATE content_picture
+<center><img src="/getdata.php?data_id=%data_id" alt="%key"></center>
+
+#TEMPLATE content_metapicture
+<center><a href="/getdata.php?data_id=%data_id" alt="%key"><img src="%img" border=0></a></center>
+
+
+#TEMPLATE content_rowact
+<center><a name="c%id"><input type=checkbox name="sel[%id]" value="1"></a><br>
+<b>%id</b><br>
+[<a href="%script?do=content-edit&id=%id">изменить</a>]<br>
+%rowdelact
+</center>
+
+#TEMPLATE content_rowdelact
+[<a style="color: red; font-weight: bold;" onClick="return confirm('Вы уверены?!');" href="%script?do=content-delete&id=%id">удалить</a>]<br>
+
+#TEMPLATE content_pubslink
+<a href="javascript:void(0);" onclick="window.open('/poprights.php?id=%id', 'preview', 'width=760,height=580,resizable=yes,scrollbars=yes');">[изменить]</a><br>
+
+#TEMPLATE content_edit
+<center><table class=content>
+<form method=post action="%script">
+<tr><th colspan=3 style="text-align:center">Редактирование информации о контенте</th></tr>
+<tr><td>ID</td><td>Класс</td><td>Вкл?</td></tr>
+<tr>
+<td><input type=text size=5 name="id" value="%id"%dis></td>
+<td>%class</td>
+<td>%active</td>
+</tr>
+<tr><th>&nbsp;</th><th colspan=2><input type=submit value="  Сохранить  "></th></tr>
+<input type=hidden name=do value="%do"></form>
+</table></center>
+<br>
+
+#TEMPLATE content_copyright
+<center><table class=content>
+<tr><th colspan=2 style="text-align:center">Информация об авторских правах</th></tr>
+<tr><td colspan=2>%copyright</td></tr>
+%rights
+<tr><td colspan=2 style="text-align:center"><a href="%script?%url">%caption</a></td></tr>
+</table></center><br>
+
+#TEMPLATE content_copyrow
+<tr><td>%part%</td><td>%owner</td></tr>
+
+#TEMPLATE content_meta
+<center><table class=content>
+<form method=post name=content_meta action="%script">
+<tr><th colspan=3 style="text-align:center">Метаданные</th></tr>
+<tr><td>Ключ</td><td>Значение</td><td>Удалить?</td></tr>
+%list
+<tr><td colspan=3>Добавить новую запись:</td></tr>
+<tr>
+<td>
+<select name="pofig" onChange="document.getElementById('inNewKey').value=this.options[this.selectedIndex].value;" style="width:200px;">
+<option value="" selected="yes" style="font-variant:italic;">-- Выберите шаблон:
+<option value="title">Название
+<option value="artist">Исполнитель
+<option value="authors_music">Авторы музыки
+<option value="authors_text">Авторы текста
+<option value="body.ua">Текст страницы (ua)
+<option value="body.ru">Текст страницы (ru)
+<option value="authors_text">Авторы текста
+<option value="compat/ключ данных">Совместимость
+# removed from template -- <option value="royalty">Роялти
+<option value="notes">Заметки
+</select><br>
+<input id="inNewKey" type=text size=10 name="newkey" value="" style="width:200px;"></td>
+<td><textarea cols=45 rows=5 name="newvalue"></textarea></td>
+<td style="color: red; font-weight: bold">new!</td>
+</tr>
+<tr><th>&nbsp;</th><th colspan=2><input type=submit value="  Изменить  "></th></tr>
+<input type=hidden name=do value="content-savemeta">
+<input type=hidden name=id value="%id"></form>
+</table></center>
+<br>
+<center><table class=content>
+<tr><th><a href="%script?do=content-automap&id=%id">Назначить коды заказов</a></th></tr>
+</table></center>
+<br>
+
+#TEMPLATE content_metarow
+<tr>
+<input type=hidden name="changed[%i]" value="0">
+<td><input type=text size=16 name="key[%i]" value="%key" readonly></td>
+<td><textarea cols=50 rows=1 name="value[%i]"
+onchange="document.content_meta.elements['changed[%i]'].value=1"
+onfocus="document.content_meta.elements['value[%i]'].rows=10"
+onblur="document.content_meta.elements['value[%i]'].rows=1;">%value</textarea>
+</td>
+<td><input type=checkbox name="del[%i]" value=1></td>
+</tr>
+
+
+#TEMPLATE content_edata
+<center><b>Бинарные данные</b><br>
+<a href="%script?do=content-edit&id=%id&showimg=%showimg">%imgtoggle</a><br>
+<table class=content>
+<tr><th>Ключ</th><th>Тип</th><th>Размер</th><th>Возможности</th></tr>
+%list
+<tr><th colspan=4 style="text-align:center">Добавить файл:</th></tr>
+<tr><td>Ключ</td><td>Тип</td><td>Выберите файл</td><td>Нажмите</td></tr>
+<form enctype="multipart/form-data" method=post action="%script">
+<tr>
+<td><input type=text size=20 maxlength=64 name="key" value=""></td>
+<td><input type=text size=20 maxlength=128 name="type" value=""></td>
+<td rowspan=2><input type=file name="data"></td>
+<td rowspan=2><input type=submit value="  Добавить  "></td>
+</tr>
+<tr><td colspan=2>Шаблон:&nbsp;%tpl</td></tr>
+<input type=hidden name=do value="content-upload">
+<input type=hidden name=id value="%id"></form>
+</table></center>
+<br>
+
+
+#TEMPLATE content_edatarow
+<tr><td>%image<a href="/getdata.php?data_id=%data_id">%key</a></td><td>%type</td><td>%size</td>
+<td>[<a href="%script?do=content-deldata&data_id=%data_id&id=%id" style="color:red;">удалить</a>] %func</td></tr>
+
+#TEMPLATE content_ecompat
+<tr><td colspan=4><acronym title="Помимо общей совместимости для этого типа данных">Совместим</acronym> с телефонами: %compat</td></tr>
+
+#TEMPLATE content_mastering
+[<a href="%script?do=content-masterdata&data_id=%data_id&id=%id">создать&nbsp;контент</a>]
+[<a href="%script?do=content-masterdata&data_id=%data_id&id=%id&preview=1">создать&nbsp;демо</a>]
+
+#TEMPLATE content_masterconv
+[<a href="%script?do=content-masterdata&data_id=%data_id&id=%id&convert=%format">создать&nbsp;%title</a>]
+
+#TEMPLATE content_inlinemaster
+[<a href="%script?do=content-inlinemaster&data_id=%data_id&id=%id">контент</a>]&nbsp;[<a href="%script?do=content-inlinemaster&data_id=%data_id&id=%id&preview=1">демо</a>]
+
+#TEMPLATE content_inlineconv
+&nbsp;[<a href="%script?do=content-inlinemaster&data_id=%data_id&id=%id&convert=%format">%title</a>]

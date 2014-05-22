@@ -1,0 +1,11 @@
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','i18n','create','Добавить');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','i18n','export_to_sql','Экспорт в SQL');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','i18n','language','Язык');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','i18n','service','Сервис');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','i18n','gui_title','Управление языком интерфейса');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','i18n','keyword','Ключ');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','i18n','translation','Перевод');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','i18n','add_translation','Добавление перевода');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','i18n','enter_lang_code','Введите корректный код языка');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','i18n','enter_keyword','Введите ключевое слово');
+INSERT INTO core.translations (lang,service,keyword,value) values ('ru','i18n','edit_translation','Редактирование перевода');

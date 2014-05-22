@@ -1,0 +1,142 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+I18n->run(
+	table             => 'core.translations',
+	selectable_fields => [ 'id', 'lang', 'service', 'keyword', 'value' ],
+	updatable_fields => [ 'lang', 'service', 'keyword', 'value' ],
+	sortable_fields  => [ 'lang', 'service', 'keyword' ],
+	filters => {
+		sSearch => sub {
+			my ($this, $value, $statement) = @_;
+			my $fragment = "(core.translations.lang ILIKE :f_search) OR (core.translations.service ILIKE :f_search) OR (core.translations.keyword ILIKE :f_search) OR (core.translations.value ILIKE :f_search)";
+			$value =~ s/([%_])/\\$1/g;
+			$statement->where([$fragment]);
+			$statement->params({ f_search => "%$value%" });
+			return $statement;
+		}
+	}
+);
+
+package I18n;
+
+use lib '/opt/nibelite/lib/perl';
+use base 'Nibelite::App::CRUD';
+
+=item action_get
+	JSON it, please!
+	Give out whole language bundle for current language.
+	Returns hash:
+	{
+		lang => 'en', # or whatever from $this->conf->{language}
+		strings => {
+			core => {
+				some_str_id => 'This is some string',
+				...
+			},
+			someservice => {
+				some_other_id => 'This string belongs to someservice',
+				...
+			},
+			...
+		}
+	}
+=cut
+
+sub action_get {
+	my $this = shift;
+	my $lang = $this->conf->{default_lang};
+	$lang = 'en' unless defined $lang;
+
+	my $query = "select service,keyword,value from core.translations where lang=?";
+	my $data = $this->dbh->fetch_call($query,$lang);
+	my $result = {
+		lang 	=> $lang,
+		strings	=> {}
+	};
+	
+	foreach my $row (@$data) {
+		my $serv = ($row->{service} ne '') ? $row->{service} : 'core';
+		$result->{strings}{$serv} = {} unless exists $result->{strings}{$serv};
+		$result->{strings}{$serv}{$row->{keyword}} = $row->{value}
+	}
+
+	return $result;
+}
+
+sub action_languages {
+	my ( $this, $data, %params ) = @_;
+	my $query = "select distinct lang from core.translations  order by lang";
+	my $rows = $this->dbh->fetch_call($query);
+	my @result = map { $_->{lang} } @$rows;
+	return \@result;
+}
+
+sub action_services {
+	my ( $this, $data, %params ) = @_;
+	my $query = 
+		"select distinct service from core.translations"
+		.(exists $params{term} ? " where service ilike ?" : '')
+		." order by service";
+	my $rows = $this->dbh->fetch_call($query,'%'.$params{term}.'%');
+	my @result = map { $_->{service} } @$rows;
+	return \@result;
+}
+
+sub action_keywords {
+	my ( $this, $data, %params ) = @_;
+	my $query = 
+		"select distinct keyword from core.translations"
+		.(exists $params{term} ? " where keyword ilike ?" : '')
+		." order by keyword";
+	my $rows = $this->dbh->fetch_call($query,'%'.$params{term}.'%');
+	my @result = map { $_->{keyword} } @$rows;
+	return \@result;
+}
+
+sub action_export {
+	my ( $this, $data, %params ) = @_;
+	
+	my $query = "select lang, service, keyword, value from core.translations";
+	my @where = ();
+	push @where, "lang=".$this->dbh->quote($params{lang}) if exists $params{lang};
+	push @where, "service=".$this->dbh->quote($params{service}) if exists $params{service};
+	$query .= " where ".join(' and ',@where);
+	my $rows = $this->dbh->fetch_call($query);
+	
+	my $sql = '';
+	foreach my $row (@$rows) {
+		$sql .= "INSERT INTO core.translations (lang,service,keyword,value) values ("
+			.$this->dbh->quote($row->{lang}).","
+			.$this->dbh->quote($row->{service}).","
+			.$this->dbh->quote($row->{keyword}).","
+			.$this->dbh->quote($row->{value}).");\n";
+	}
+	
+	my $filename = 'data-translations-'
+		.(exists $params{lang} ? $params{lang} : 'xx').'-'
+		.(exists $params{service} ? $params{service} : 'all')
+		.'.sql';
+	
+	return $sql,'text/plain',$filename;
+}
+
+sub dispatch_file {
+	my ( $this, $action ) = @_;
+	my %params   = $this->get_cgi_params();
+	my $data = '';
+	my $mime = 'text/plain';
+	my $filename = 'error.txt';
+	
+	( $data, $mime, $filename ) = eval { return $this->action( $action, \%params, %params ); };
+	
+	$this->mime($mime);
+	$this->headers({'Content-Disposition'=>'attachment; filename='.$filename});
+	
+	$this->data($data);
+}
+
+
+1;

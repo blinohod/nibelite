@@ -1,0 +1,111 @@
+#TEMPLATE request_fakeform
+#
+#  %script
+#
+<h3>SMS-query emulation</h3>
+<center><table class=content>
+<p>Emulator allows support engieneers to simulate messages sent from/to the VAS platform.</p>
+<form method=post action="%script">
+<tr><th>Source application:</th><td>%apps</td></tr>
+<tr><th>Source number:</th><td><input type=text size=40 name=prefix value="%dst_addr"></td></tr>
+<tr><th>Destination number:</th><td><input type=text size=40 name=msisdn value="%msisdn"></td></tr>
+<tr><th>SMS text:</th><td><input type=text size=40 name=request value="%request"></td></tr>
+<tr><td>&nbsp;</td><td><input type=submit value="Send SMS"></td></tr>
+<input type=hidden name=do value="request-send"></form>
+</table></center>
+<br>
+
+#TEMPLATE request_reply
+#
+#  %script
+#
+<div align=center><b>Reply to SMS with ID %id</b></div>
+<center><table class=content>
+<form method=post action="%script">
+<tr><td>MSISDN:</td><td style="font-weight:bold">%msisdn</td></tr>
+<tr><td>SMS query retrieved:</td><td>%time</td></tr>
+<tr><th>Delivery channel:</th><td>%apps</td></tr>
+<tr><td>Message text:</td><td><input type=text size=60 maxlength=160 name=request value="%request"></td></tr>
+<tr><td>&nbsp;</td><td><input type=submit value="Ok"></td></tr>
+<input type=hidden name=do value="request-send">
+<input type=hidden name=id value="%id">
+</form>
+</table></center>
+<br>
+
+
+#TEMPLATE request_filter
+<center>
+<table class=content>
+<form method=post action="%script">
+<input type=hidden name=do value="request-list">
+<tr><th colspan=8>Filter messages by:</th></tr>
+<tr>
+	<th>MSISDN</th>
+	<th>Channel (short code)</th>
+	<th title="Search messages older than">Older than</th>
+	<th>Status</th>
+	<th>Message text</th>
+	<th>Num. per page</th>
+	<th>&nbsp;</th>
+</tr>
+<tr>
+	<td><input type=text name="fmsisdn" value="%fmsisdn" size=16></td>
+	<td>%operator</td>
+	<td>%time</td>
+	<td>%status</td>
+	<td><input type=text name="fcode" value="%fcode" size=10></td>
+	<td><input type=text name="lim" value="%lim" size=3></td>
+	<td><input type=submit value="Search"></td>
+</tr>
+</form>
+</table>
+</center>
+<br>
+
+#TEMPLATE request_nav
+<div align=center>%nav</div>
+<br>
+
+#TEMPLATE request_qty
+<div align=center><b>Found messages: %qty</b></div>
+<br>
+
+#TEMPLATE request_table
+<center><table class=content>
+<tr>
+	<th>Action</th><th>ID</th><th>From</th><th>To</th><th>Message content</th><th>Timestamp</th><th>Type</th><th>Status</th>
+</tr>
+%rows
+</table></center>
+
+#TEMPLATE request_row
+<tr>
+<td><a href="%script?do=request-reply&id=%id">[reply]</a>
+	<!--<a href="javascript:{void(0);}" onClick="window.open('/card.php?do=cards-show&id=%id', 'card', 'width=480,height=400,scrollbars=yes');">[подробнее]</a>-->
+</td>
+<td>%id</td>
+<td>%src_addr</td>
+<td>%dst_addr</td>
+<td>%msg_body</td>
+<td>%time</td>
+<td>%msg_type</td>
+<td>%status</td>
+</tr>
+
+#TEMPLATE support_menu
+<a href="%script?do=request-list">Messages browser</a>
+- <a href="%script?do=request-fake">SMS emulation</a>
+
+#TEMPLATE support_default
+<h1>Nibelite Helpdesk</h1>
+<dl>
+	<dt><a href="%script?do=request-list">Запросы клиентов</a></dt>
+	<dd>Показывает все запросы клиентов (свежие - в начале списка).
+	Позволяет искать запрос по номеру телефона, отправлять ответ на запрос и так далее.</dd>
+	<dt><a href="%script?do=request-fake">Эмулировать запрос</a></dt>
+	<dd>Позволяет эмулировать запрос как бы от клиента. Полезно при отправке сообщений
+	или контента по каналу, где не требуется подтверждение запроса оператором.</dd>
+</dl>
+
+

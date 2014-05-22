@@ -1,0 +1,112 @@
+# $Id: design.datatpl.html 159 2008-02-19 11:20:55Z misha $
+
+#translate cms_head_datatpl Шаблоны данных
+
+#TEMPLATE datatpl_table
+#
+#  %rows
+#
+<script type="application/x-javascript">
+	<!--
+function setSubmitDelete(what){
+  if(document.getElementById){
+    elDo = document.getElementById('do'+what);
+    elSubmit = document.getElementById('submit'+what);
+    if(elDo){
+      if(elDo.value == 'datatpl-update'){
+        elDo.value = 'datatpl-delete';
+        if(elSubmit)
+          elSubmit.value = 'удалить?!';
+      }else{
+        elDo.value = 'datatpl-update';
+        if(elSubmit)
+          elSubmit.value = 'сохранить';
+      }
+    }
+  }
+}
+function openEdit(someid){
+  if(document.getElementById){
+    elView = document.getElementById('vdiv'+someid);
+    elEdit = document.getElementById('ediv'+someid);
+    if(elView){
+      elView.className = 'closed';
+    }
+    if(elEdit){
+      elEdit.className = 'open';
+    }
+  }
+}
+function closeEdit(someid){
+  if(document.getElementById){
+    elView = document.getElementById('vdiv'+someid);
+    elEdit = document.getElementById('ediv'+someid);
+    if(elView){
+      elView.className = 'open';
+    }
+    if(elEdit){
+      elEdit.className = 'closed';
+    }
+  }
+}
+
+	-->
+</script>
+<style type="text/css">
+.open { display:block; }
+.closed { display:none; }
+.blind {
+	border-top: 1px solid #ffffff;
+	border-bottom: 1px solid #cccccc;
+}
+</style>
+<center>Показывать шаблоны для класса:<br>%filter</center><br>
+<table class=content width=100%><tr><th width="10%">ID</th><th width="35%">Данные</th><th width="35%">Описание</th><th width="20%">Fn</th></tr></table>
+%rows
+<table><tr><th colspan=4><a name="add"/>Добавить новый тип:</th></tr>
+<form name="insertdatatpl" method="get" action="%script">
+<input type="hidden" name="do" value="datatpl-insert">
+<tr>
+  <td width="10%">&nbsp;</td>
+  <td width="35%" style="text-align:right">Класс: %[class_id]<br>Тип данных: %[type_id]<br>Тип MIME: %[mime_id]</td>
+  <td width="35%"><input type="text" size=30 name="title" value=""></td>
+  <td width="20%"><input type="submit" value="добавить"></td>
+</tr>
+</form>
+</table>
+
+#TEMPLATE datatpl_empty
+#
+#  %script
+#
+<center>Ничего нет. Немедленно добавьте новую запись!</center>
+
+#TEMPLATE datatpl_row
+#
+#  %script, %id, %ext, %mime_type
+#
+<div class="open" id="vdiv%id"><table class="blind" width="100%" border=0 cellspacing=2 cellpadding=0><tr>
+  <td width="10%"><b>%id</b></td>
+  <td width="35%">%(class_id)<br>%(mime_id)</td>
+  <td width="35%">%title<br>%(type_id)</td>
+  <td width="20%"><a href="javascript:void(0);" onclick="return openEdit('%id');">изменить</a></td>
+</tr></table></div><div class="closed" id="ediv%id"><table width="100%" class="content"><form name="editdatatpl%id" method="get" action="%script"><input id="do%id" type="hidden" name="do" value="datatpl-update"><tr>
+  <td width="10%"><input type="text" size="3" readonly="yes" name="id" value="%id"></td>
+  <td width="35%" style="text-align:right">Класс: %[class_id]<br>Тип MIME: %[mime_id]</td>
+  <td width="35%">Описание: <input type="text" size="26" name="title" value="%title"><br>Тип данных: %[type_id]</td>
+  <td width="20%" style="text-align:center"><input id="submit%id" type="submit" value="сохранить"><br>
+  [<a href="javascript:void(0);" onclick="return setSubmitDelete('%id');" style="color:red;font-weight:bold">удалить</a>]
+  [<a href="javascript:void(0);" onclick="return closeEdit('%id');" style="font-weight:bold">отмена</a>]</td>
+</tr></form></table></div>
+
+#TEMPLATE datatpl_edit
+#
+#  %script
+#  %id
+#  %class
+#  %descr
+#  %do
+#
+<center>Выполнение функции отдельного редактирования в данном модуле не предусмотрена. Дорогая редакция приносит искренние соболезнования и просит проверить ссылки.
+</center>
+<br>

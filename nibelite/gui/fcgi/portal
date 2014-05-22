@@ -1,0 +1,90 @@
+#!/usr/bin/env perl
+
+use 5.8.0;
+use strict;
+use warnings 'all';
+
+use lib '/opt/nibelite/lib/perl';
+
+use base 'Nibelite::App::Admin';
+
+use Data::Dumper;
+
+__PACKAGE__->run(
+	conf_file => '/opt/nibelite/etc/nibelite.conf',
+);
+
+sub process_default {
+
+	my ($this) = @_;
+
+	my %out = ();
+
+	warn Dumper($this->cgi);
+
+	if ($this->cgi->param('login')) {
+		$out{error_message} = 'Login found';
+	};
+
+	if ( $this->authorize( 'core', 'dashboard' ) ) {
+		return $this->render('core_login_form', %out);
+	} else {
+		return '<pre>' . Dumper($this) . '</pre>';
+	}
+
+}
+
+sub process_users {
+
+	my ($this) = @_;
+
+	my $users = $this->dbh->fetch_call("select * from core.users");
+	return $this->render( 'users_list', users => $users );
+
+}
+
+sub process_menu {
+
+	my ($this) = @_;
+
+	my $menu = '<ul class="nav">';
+
+	my @data = @{ $this->dbh->fetch_call("select * from core.menu where parent_id is null order by weight") };
+
+	my $left_menu = 1;
+
+	foreach my $row (@data) {
+
+		# If weight 1000 and more - show as internal services
+		if ( $left_menu and ( $row->{weight} gt 1000 ) ) {
+			$menu .= '</ul><ul class="nav pull-right">';
+			$left_menu = 0;
+		}
+
+		# Fetch submenu
+		my @subdata = @{ $this->dbh->fetch_call( "select * from core.menu where parent_id =? order by weight", $row->{id} ) };
+
+		if ( scalar @subdata ) {
+			$menu .= '<li class="dropdown">';
+			$menu .= '<a href="' . $row->{uri} . '" class="dropdown-toggle" data-toggle="dropdown">' . $this->translate( $row->{title_tag} ) . '<b class="caret"></b></a>';
+			$menu .= '<ul class="dropdown-menu">';
+
+			foreach my $subrow (@subdata) {
+				$menu .= '<li><a href="' . $subrow->{uri} . '">' . $this->translate( $subrow->{title_tag} ) . '</a></li>';
+			}
+
+			$menu .= '</ul>';
+			$menu .= '</li>';
+		} else {
+			$menu .= '<li><a href="' . $row->{uri} . '">' . $this->translate( $row->{title_tag} ) . '</a>';
+		}
+
+	} ## end foreach my $row (@data)
+
+	$menu .= '</ul>';
+
+	return $menu;
+
+} ## end sub process_menu
+
+1;

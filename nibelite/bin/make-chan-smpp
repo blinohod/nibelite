@@ -1,0 +1,79 @@
+#!/bin/bash
+
+. shell-getopt
+
+__usage() {
+
+cat <<EOT
+Usage: $0 <options>
+
+Options:
+	-s --smsc <smsc-id>        SMSC identifier for Kannel (mandatory)
+	-n --sn <sn>               service number (mandatory)
+	-r --raw                   use SMS_RAW encoding for MO messages
+	-b --bandwidth <num>       channel bandwidth (SMS/sec)
+
+EOT
+exit 0;
+
+}
+
+if [ -z "$1" ]; then
+__usage
+fi
+
+# Set defaults
+SMSC=
+SN=
+BW=10
+RAW=
+
+
+while getoptex "s: smsc: n: sn: r raw b: bandwidth: h help" "$@"
+do
+	case "$OPTOPT" in
+		s|smsc) SMSC="$OPTARG" ;;
+		n|sn) SN="$OPTARG" ;;
+		r|raw) RAW=1 ;;
+		b|bandwidth) BW="$OPTARG" ;;
+		h|help)
+			__usage
+			;;
+	esac
+done
+
+if [ -z "$SMSC" ]; then
+	echo "SMSC is not set. Use --smsc argument."
+	exit 1;
+fi
+
+if [ -z "$SN" ]; then
+	echo "Service number is not set. Use --sn argument."
+	exit 1;
+fi
+
+let "BW=BW+0"
+if [ $BW == "0" ]; then
+	echo "Invalid bandwidth, use default 10"
+	BW=10
+fi
+
+APP=`echo chan_${SMSC}_${SN} | sed 's/-/_/g'`
+echo "INSERT INTO core.apps (name,descr) values ('$APP','Short code $2 on $1');"
+echo "INSERT INTO core.apps_conf (app_id, tag, value) VALUES (core.get_app_id('$APP'),'smsc','$SMSC');"
+echo "INSERT INTO core.apps_conf (app_id, tag, value) VALUES (core.get_app_id('$APP'),'sn','$SN');"
+echo "INSERT INTO core.apps_conf (app_id, tag, value) VALUES (core.get_app_id('$APP'),'chan_type','kannel');"
+echo "INSERT INTO core.apps_conf (app_id, tag, value) VALUES (core.get_app_id('$APP'),'bandwidth','$BW');"
+echo "INSERT INTO core.apps_conf (app_id, tag, value) VALUES (core.get_app_id('$APP'),'retries','4');"
+echo "INSERT INTO core.apps_conf (app_id, tag, value) VALUES (core.get_app_id('$APP'),'retry_timeout','15');"
+echo "INSERT INTO core.apps_conf (app_id, tag, value) VALUES (core.get_app_id('$APP'),'sendsms_url','http://127.0.0.1:13013/cgi-bin/sendsms');"
+echo "INSERT INTO core.apps_conf (app_id, tag, value) VALUES (core.get_app_id('$APP'),'sendsms_user','nibelite');"
+echo "INSERT INTO core.apps_conf (app_id, tag, value) VALUES (core.get_app_id('$APP'),'sendsms_passwd','nibelite');"
+echo "INSERT INTO core.apps_conf (app_id, tag, value) VALUES (core.get_app_id('$APP'),'dlr_url','http://127.0.0.1/nibelite/recv');"
+
+if [ -n "$RAW" ]; then
+	echo "INSERT INTO core.apps_conf (app_id, tag, value) VALUES (core.get_app_id('$APP'),'mo_raw_sms','true');"
+fi
+
+exit 0;
+

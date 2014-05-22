@@ -1,0 +1,148 @@
+#!/usr/bin/env perl
+
+use 5.8.0;
+use warnings;
+use strict;
+
+use lib '/opt/nibelite/lib/perl';
+
+OperatorsConsole->run(
+	table             => 'core.messages as cm',
+	forbid_operations => [ 'create', 'update', 'delete' ], 
+	
+	selectable_fields => [ qw(id src_app_id src_app_name src_addr dst_app_id dst_app_name dst_addr date_received msg_status msg_type msg_body) ],
+	selectable_sql => {
+		id				=> 'cm.id',				#  0
+		src_app_id		=> 'cm.src_app_id',		#  1
+		src_app_name	=> 'cas.name',			#  2
+		src_addr		=> 'cm.src_addr',		#  3
+		dst_app_id		=> 'cm.dst_app_id',		#  4
+		dst_app_name	=> 'cad.name',			#  5
+		dst_addr		=> 'cm.dst_addr',		#  6
+		date_received	=> 'cm.date_received',	#  7
+		msg_status		=> 'cm.msg_status',		#  8
+		msg_type		=> 'cm.msg_type',		#  9
+		msg_body		=> 'cm.msg_body'		# 10
+	},
+	
+	sortable_fields  => [ qw(src_app_id src_addr dst_app_id dst_addr date_received msg_status msg_type msg_body) ],
+	filters => {
+		sSearch_1 => sub {
+			my ($this, $value, $statement) = @_;
+			return $statement unless $value;
+			$statement->where(['src_app_id = :src_app_id']);
+			$statement->params({ src_app_id => $value });
+			return $statement;
+		},
+		sSearch_4 => sub {
+			my ($this, $value, $statement) = @_;
+			return $statement unless $value;
+			$statement->where(['dst_app_id = :dst_app_id']);
+			$statement->params({ dst_app_id => $value });
+			return $statement;
+		},
+		sSearch_7 => sub {
+			my ($this, $value, $statement) = @_;
+			return $statement unless $value;
+			$value = substr($value,0,10);
+			$statement->where(["date_received between timestamp :date_received and timestamp :date_received + interval '1 day'"]);
+			$statement->params({ date_received => $value });
+			return $statement;
+		},
+		sSearch_8 => sub {
+			my ($this, $value, $statement) = @_;
+			my %st = (
+				fail	=> "msg_status in ('FAILED', 'REJECTED', 'UNDELIVERABLE','EXPIRED','UNKNOWN')",
+				wait	=> "msg_status in ('NEW', 'ROUTED', 'SENT')",
+				ok		=> "msg_status in ('PROCESSED', 'DELIVERED')"
+			);
+			if (exists $st{$value}) {
+				$statement->where([$st{$value}]);
+			}
+			return $statement;
+		},
+		sSearch_9 => sub {
+			my ($this, $value, $statement) = @_;
+			my %allowed = map { $_=>1 } @{$this->action_types};
+			if (exists $allowed{$value}) {
+				$statement->where(['msg_type = :msg_type']);
+				$statement->params({ msg_type => $value });
+			}
+			return $statement;
+		},
+		
+		sSearch => sub {
+			my ($this, $value, $statement) = @_;
+			return $statement unless $value;
+			$value =~ s/([%_])/\\$1/g; # escape for LIKE
+			$statement->where(['msg_body ilike :qry or src_addr ilike :qry or dst_addr ilike :qry']);
+			$statement->params({ qry => "%$value%" });
+			return $statement;			
+		}
+	}
+);
+
+package OperatorsConsole;
+use base 'Nibelite::App::CRUD';
+
+sub list_base_query {
+	my ($this) = @_;
+	my $query = $this->SUPER::list_base_query();
+	$query->where( ["msg_type != 'DLR'"] );
+	$query->joins( ['JOIN core.apps cas ON cm.src_app_id = cas.id','JOIN core.apps cad ON cm.dst_app_id = cad.id'] );
+	$query->fields( { src_app_name => 'cas.name', dst_app_name => 'cad.name' } );
+}
+
+=item action_list stub
+
+sub action_list {
+	my ( $this, $data, %params ) = @_;
+	my $res = $this->SUPER::action_list($data,%params);
+	my $rows = scalar @{$res->{aaData}};
+	
+	for ( my $i=0; $i<$rows; $i++ ) {
+		if ($res->{aaData}[$i][9] eq 'SMS_RAW') {
+		}
+	}
+	
+	return $res;
+}
+
+=cut
+
+sub action_channels {
+	my ( $this, $data, %params ) = @_;
+	my $res = $this->dbh->fetch_call("select id,name from core.apps order by name");
+	return $res;
+}
+
+sub action_types {
+	my ( $this, $data, %params ) = @_;
+	my $res = $this->dbh->fetch_call("select enum_range(null::core.t_msg_type)");
+	my $str = $res->[0]->{enum_range};
+	$str =~ s/[\{\}]//g;
+	return [split /\,/,$str];
+}
+
+sub action_send {
+	my ( $this, $data, %params ) = @_;
+	my $src_app_id = defined $params{src_app_id} ? $params{src_app_id}+0 : 0;
+	my $dst_app_id = defined $params{dst_app_id} ? $params{dst_app_id}+0 : 0;
+	my $src_addr = defined $params{src_addr} ? $params{src_addr}+0 : 0;
+	my $dst_addr = defined $params{dst_addr} ? $params{dst_addr}+0 : 0;
+	my $msg_body = defined $params{msg_body} ? $params{msg_body} : '';
+	
+	unless ($src_app_id && $src_addr && $dst_addr) {
+		return {},{status=>'error',message=>'Bad sender, recipient or source application id'};
+	}
+	
+	if ($dst_app_id) {
+		$this->dbh->call("insert into core.messages (src_app_id,src_addr,dst_app_id,dst_addr,msg_body,msg_status) values(?,?,?,?,?,'ROUTED')",$src_app_id,$src_addr,$dst_app_id,$dst_addr,$msg_body);
+	} else {
+		$this->dbh->call("insert into core.messages (src_app_id,src_addr,dst_addr,msg_body,msg_status) values(?,?,?,?,'NEW')",$src_app_id,$src_addr,$dst_addr,$msg_body);
+	}
+	
+	return {};
+}
+
+1;

@@ -1,0 +1,276 @@
+#!/usr/bin/env perl 
+
+use 5.8.0;
+use strict;
+use warnings;
+
+NetSDSApp->run(
+	daemon    => 0,
+	infinite  => 0,
+	has_conf  => 1,
+	conf_file => '/opt/nibelite/etc/channels/kannel.conf',
+	mode      => 'receiver',
+);
+
+1;
+
+package NetSDSApp;
+
+use lib '/opt/nibelite/lib/perl';
+
+# SMS delivery states
+use constant STATE_DELIVERED     => 1;     # Delivered to MS
+use constant STATE_UNDELIVERABLE => 2;     # Undeliverable
+use constant STATE_ENROUTE       => 4;     # Queued on SMSC
+use constant STATE_ACCEPTED      => 8;     # Received by SMSC
+use constant STATE_REJECTED      => 16;    # Rejected by SMSC
+
+use NetSDS::Kannel;
+use NetSDS::Util::String;
+use NetSDS::Util::Convert;
+use JSON;
+
+use Nibelite::SMS;
+
+use base 'Nibelite::App::Channel';
+
+sub start {
+
+	my ($this) = @_;
+
+	$this->use_modules('CGI::Fast');
+
+	$this->mk_accessors('kannel');
+	$this->kannel( NetSDS::Kannel->new() );
+
+	$this->mk_accessors('json');
+	$this->json( JSON->new() );
+
+}
+
+sub process {
+
+	my ($this) = @_;
+
+	if ( my $cgi = CGI::Fast->new() ) {
+
+		# Kannel expect 202 code and empty message body
+		print $cgi->header( -status => '202 Accepted', -type => 'text/plain' );
+
+		# Check if it seems like correct request from Kannel
+		unless ( $cgi->param('type') ) {
+			$this->log( "error", "Undefined 'type' parameter in HTTP request" );
+			return $this->error("Undefined 'type' parameter in HTTP request");
+		}
+
+		unless ( ( $cgi->param('type') eq 'mo' ) or ( $cgi->param('type') eq 'dlr' ) ) {
+			$this->log( "error", "Unknown 'type' parameter in HTTP request: '" . $cgi->param('type') . "'" );
+			return $this->error( "Unknown 'type' parameter in HTTP request: '" . $cgi->param('type') . "'" );
+		}
+
+		# Parse incoming HTTP GET request from Kannel
+		my %req = $this->kannel->receive($cgi);
+		%req = (
+			type => '',
+			smsc => '',
+			from => '',
+			to   => '',
+			%req,
+		);
+
+		$req{from} =~ s/\+//g;    # Clear leading '+'
+
+		my $src_app_id = undef;   # source app_id
+		my $mo_status  = 'NEW';   # default message status
+		my $chan_conf  = {};      # Source channel configuration from core.apps_conf
+
+		# Determine source app_id
+		if ( $req{type} eq 'mo' ) {
+			$src_app_id = $this->determine_chan_app( $req{smsc}, $req{to} );
+		}
+
+		if ($src_app_id) {
+
+			# Fetch channel configuration for proper app ID
+			$chan_conf = $this->chan_conf->{$src_app_id};
+
+		} elsif ( $req{type} eq 'mo' ) {
+
+			# Process unknown source channel exception.
+			# 1. Set default source channel to 'chan_fake'.
+			# 2. Set status to UNKNOWN.
+			$this->log( "error", "Can't determine src_app_id for MO SM: smsc='$req{smsc}'; SN='$req{to}'" );
+			$mo_status  = 'FAILED';
+			$src_app_id = 0;          # Set fake source channel
+
+		}
+
+		# Process MO SM from subscriber's phone
+		if ( $req{type} eq 'mo' ) {
+
+			$this->log( "info", "MO SM retrieved: smsc='$req{smsc}'; from='$req{from}'; to='$req{to}'" );
+
+			my $msg_type = undef;
+			my $msg_body = undef;
+
+			my $qty = 1;              # Default message size (number of PDU in concatenated SM)
+
+			# Text messages may be concatenated by Kannel
+			# Determine size in number of SMS PDU
+			if ( ( $req{coding} eq '0' ) or ( $req{coding} eq '2' ) ) {
+
+				my $txt = str_recode( $req{bin}, $req{charset}, 'UTF-8' );
+				$qty = scalar string_to_pdu( $txt, $req{coding} );
+			}
+
+			if ( $chan_conf->{mo_raw_sms} ) {
+
+				$msg_type = 'SMS_RAW';    # raw SMS PDU
+
+				my $udh = defined( $req{udh} ) ? str_decode( $req{udh} ) : '';
+				my $text = str_recode( $req{bin} . '', $req{charset}, 'UTF-8' );
+
+				my $ud = str_decode( $text, $req{charset} );
+
+				# Prepare text and user data
+				if ( $req{coding} eq '0' ) {
+
+					$text = str_encode($text);
+					$ud = str_decode( $text, 'GSM0338' );
+
+				} elsif ( $req{coding} eq '2' ) {
+
+					$text = str_encode($text);
+					$ud = str_decode( $text, 'UCS-2BE' );
+
+				}
+
+				# Encode raw SMS PDU for queue
+				$msg_body = $this->json->encode(
+					{
+						udh    => conv_str_hex($udh),
+						ud     => conv_str_hex($ud),
+						text   => $text,
+						coding => $req{coding},
+					}
+				);
+
+			} else {
+
+				# Plain text message
+				$msg_type = 'SMS_TEXT';
+				$msg_body = str_recode( $req{bin} . '', $req{charset}, 'UTF-8' );
+
+			}
+
+			my $extra = {
+				coding => $req{coding},
+				smsc   => $req{smsc},
+			};
+
+			return {
+				src_app_id => $src_app_id,
+				src_addr   => $req{from},
+				dst_addr   => $req{to},
+				msg_status => $mo_status,
+				msg_type   => $msg_type,
+				msg_body   => $msg_body,
+				qty        => int($qty),
+				extra      => '\x' . conv_str_hex( str_decode( to_json( $extra, { utf8 => 1 } ) ) ),
+			};
+
+		} elsif ( $req{type} eq 'dlr' ) {
+
+			# Process delivery states
+
+			$this->log( "info", "DLR retrieved: from='$req{from}'; to='$req{to}'; state='$req{dlr_state}'; smsid='$req{smsid}'" );
+
+			my $msg_status = undef;
+
+			if ( $req{dlr_state} eq STATE_DELIVERED ) {
+
+				$msg_status = 'DELIVERED';
+
+			} elsif ( $req{dlr_state} eq STATE_REJECTED ) {
+
+				$msg_status = 'REJECTED';
+
+			} elsif ( $req{dlr_state} eq STATE_UNDELIVERABLE ) {
+
+				# When message can't be delivered Kannel identify it with the same
+				# delivery state. So we need to try also check DLR message body
+				# to find out reason of delivery error.
+				#
+				# Example of DLR message to parse:
+				# id:SM509115960 sub:001 dlvrd:001 submit date:1003280427 done date:1003280427 stat:DELIVRD
+				if ( $req{'dlr_msg'} =~ /stat:expired/i ) {
+					$msg_status = 'EXPIRED';
+				} else {
+					$msg_status = 'UNDELIVERABLE';
+				}
+
+			}
+
+			# Determine destination application ID.
+			# It seems quite reasonable to send DLR to the same
+			# app_id that created original MT SM.
+			my $res = $this->dbh->fetch_call( "select src_app_id,dst_app_id from core._messages_queue where id = ?", $req{msgid} );
+			$src_app_id = $res->[0]->{dst_app_id} + 0;
+			my $dst_app_id = $res->[0]->{src_app_id} + 0;
+
+			# Update original MT message status
+			$this->mq->update_message(
+				$req{msgid},
+				msg_status  => $msg_status,
+				external_id => $req{smsid},    # set message ID from SMSC
+			);
+
+			# Set error code
+			my $err_code = $req{reject_code} || '0';
+
+			# Prepare DLR message body
+			my $dlr_body = $msg_status . ':' . $err_code;
+
+			# Process UCS-encoded DLR messages
+			my $dlr_msg = str_decode( $req{dlr_msg} );
+			if ( $dlr_msg =~ /^\x00/ ) {
+				$dlr_msg = str_recode( $dlr_msg, 'UTF-16BE', 'UTF-8' );
+			}
+
+			my $extra = {
+				smsc => $req{smsc},
+				dlr  => $req{dlr_msg},
+			};
+
+			# Return DLR message to put into queue
+			return {
+				refer_id    => $req{msgid},
+				external_id => $req{smsid},
+				src_app_id  => $src_app_id,
+				dst_app_id  => $dst_app_id,
+				src_addr    => $req{from},
+				dst_addr    => $req{to},
+				msg_status  => 'ROUTED',
+				msg_type    => 'DLR',
+				msg_body    => $dlr_body,
+				extra       => '\x' . conv_str_hex( str_decode( to_json( $extra, { utf8 => 1 } ) ) ),
+			};
+
+		} else {
+			$this->log( "error", "Retrieved request of unknown type! Expected 'mo' or 'dlr'" );
+			return $this->error("Can't process request of unknown type.");
+		}
+
+	} ## end if ( my $cgi = CGI::Fast...)
+	else {
+
+		# No incoming message - stop processing
+		$this->{to_finalize} = 1;
+		return undef;
+
+	}
+
+} ## end sub process
+
+1;
+

@@ -1,0 +1,89 @@
+#TEMPLATE apps_table
+#
+#  %rows
+#
+<h1>Components setup</h1>
+<p>Here you can add new components to your VAS platform.</p>
+
+<a href="%script?do=apps-add">Click here to add component.</a>
+<table class=content width=100%><tr><th>ID</th><th>Name</th><th>Description</th></tr>
+%rows
+</table>
+
+#TEMPLATE apps_empty
+#
+#  %script
+#
+<tr><td colspan=3>No components defined. <a href="%script?do=apps-add">Click here to add component.</a></td></tr>
+
+
+#TEMPLATE apps_row
+#
+#  %script, %id, %name, %active
+#
+<tr><td>%id&bull;[<a href="%script?do=apps-delete&id=%id" style="color:red" onclick="return confirm('Are you sure to remove component?');">x</a>]</td>
+    <td><a href="%script?do=apps-edit&id=%id"><b>%name</b></a></td>
+		<td>%descr</td>
+</tr>
+
+#TEMPLATE apps_edit
+#
+#  %script
+#  %id
+#  %name
+#  %active
+#  %config
+#  %do
+#
+<center><table class=content width="50%">
+<form method=post name="editconf" action="%script">
+<tr><th>ID</th><th>Name</th><th>Active</th></tr>
+<tr>
+	<td><input type=text size=5 maxlength=5 name="id" value="%id"%dis></td>
+	<td><input type=text size=30 maxlength=128 name="name" value="%name"></td>
+	<td><input type=checkbox name="active" "%active"></td>
+</tr>
+<tr>
+	<td>&nbsp;</td><td colspan=2 align="right">
+		Description:<br/>
+		<textarea name=descr cols=30 rows=5>%descr</textarea>
+	</td>
+</tr>
+<tr>
+	<td>&nbsp;</td><td colspan=2 align="right">
+		<input type=submit value="  Save  ">
+		<input type=checkbox name="copy" value=1>save a copy</td>
+</tr>
+%config
+<input type=hidden name=do value="%do">
+</form>
+</table></center>
+<br>
+
+
+#TEMPLATE apps_editconf
+<tr><th>Tag</th><th colspan=2>Value</th></tr>
+%rows
+<tr>
+<input type=hidden name="changed[0]" value="0">
+<td><input type=text size=10 maxlength=32 name="key[0]" value=""
+onchange="document.editconf.elements['changed[0]'].value=1"></td>
+<td colspan=2><input type=text size=50 name="value[0]" value=""
+onchange="document.editconf.elements['changed[0]'].value=1"></td>
+</tr>
+<tr><td>&nbsp;</td><td colspan=2 align="right"><input type=submit value="  Save  "></td></tr>
+
+#TEMPLATE apps_confrow
+<tr>
+<input type=hidden name="changed[%i]" value="0">
+<td><input type=text size=10 maxlength=32 name="key[%i]" value="%key"
+onchange="document.editconf.elements['changed[%i]'].value=1"></td>
+<td colspan=2><input type=text size=50 name="value[%i]" value="%value"
+onchange="document.editconf.elements['changed[%i]'].value=1"><br>%descr</td>
+</tr>
+
+#TEMPLATE apps_nodescr
+<a href="%script?do=trans-list&keyword=ac_%key" target="translate">add tag description</a>
+
+#TEMPLATE apps_descr
+%descr <a href="%script?do=trans-list&keyword=ac_%key" target="translate">.</a>

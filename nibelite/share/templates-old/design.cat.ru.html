@@ -1,0 +1,56 @@
+#TEMPLATE cat_item
+#
+#  %script, %id, %title, %keywords, %dir, %shift, %color, %sort
+#
+<div style="margin:2px;background:%color;"><small>%shift<a href="%script?do=cat-list&id=%id">%title</a> &bull;
+%dir &bull;
+[<a href="%script?do=cat-add&id=%id" title="добавить">+</a>]
+[<a href="%script?do=cat-up&id=%id">выше</a>]
+%sort
+[<a href="%script?do=cat-down&id=%id">ниже</a>]
+&nbsp;[<a href="%script?do=cat-del&id=%id" style="color:red;" title="удалить"
+onclick="return confirm('Вы действительно хотите удалить эту ветку?');">x</a>]
+</small></div>
+
+#TEMPLATE cat_page
+#
+#  %list, %form
+#
+<table width=100% class=content><tr valign=top><td width=50%>%list</td><td width=50%>%form</td></tr></table>
+
+#TEMPLATE cat_form
+#
+#  %script, %id, %title, %keywords, %dir, %parent
+#
+<table width=100% class=content>
+<form method=post action="%script">
+<input type=hidden name=id value="%id"><input type=hidden name=do value="cat-save">
+<tr><th colspan=2 style="text-align:center;">Редактирование ветки</th></tr>
+<tr><td>Название</td><td><input type=text size=20 style="width:200px;" name=title value="%title"></td></tr>
+<tr><td>Directory</td><td><input type=text size=20 style="width:200px;" name=dir value="%dir"></td></tr>
+<tr><td>ID классов контента</td><td><input type=text size=20 style="width:200px;" name=keywords value="%keywords"></td></tr>
+<tr><td>Размещение</td><td>%parent</td></tr>
+<tr><td>Тип узла</td><td><input type=text size=20 style="width:200px;" name=node_class value="%node_class"></td></tr>
+<tr><td colspan=2 style="text-align: center">
+  <input type=submit name="save" value=" Сохранить ">
+  <input type=submit name="saveadd" value=" Добавить ещё ">
+</td></tr>
+</form>
+</table>
+<div style="text-align:right;"><small>[<a href="%script?do=cat-copy&id=%id">дублировать ветвь</a>]</small></div>
+
+<table width=100% class=content>
+	<tr><th style="text-align:center;">Связанная страница</th></tr>
+	<tr><td>%linked_page</td></tr>
+</table>
+
+<table width=100% class=content>
+<form method=post action="%script">
+<input type=hidden name=id value="%id"><input type=hidden name=do value="cat-update">
+<tr><th style="text-align:center;">Сохранение</th></tr>
+<tr><td>После того, как вы произвели одно или несколько изменений в каталоге (добавили или изменили разделы,
+меняли поддерживаемые классы контента и так далее, необходимо пересчитать параметры, обеспечивающие
+быструю работу с каталогом. Нажмите эту кнопку:
+<center><input type=submit value=" Сохранить изменения "></center></td></tr>
+</form>
+</table>

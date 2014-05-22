@@ -1,0 +1,53 @@
+# $Id: design.classes.html 159 2008-02-19 11:20:55Z misha $
+
+#translate cms_head_classes Управление классами контента
+
+#TEMPLATE classes_table
+#
+#  %rows
+#
+<a href="#add">Щёлкните здесь для добавления класса.</a>
+<table class=content width=100%><tr><th>ID</th><th>Имя</th><th>Описание</th><th>Fn</th></tr>
+%rows
+<tr><th colspan=4><a name="add"/>Добавить новый класс:</th></tr>
+<form name="insertclass" method="get" action="%script">
+<input type="hidden" name="do" value="classes-insert">
+<tr>
+  <td>&nbsp;</td>
+  <td><input type="text" size=30 name="class" value=""></td>
+  <td><input type="text" size=40 name="descr" value=""></td>
+  <td><input type="submit" value="добавить"></td>
+</tr>
+</form>
+</table>
+
+#TEMPLATE classes_empty
+#
+#  %script
+#
+<tr><td colspan=4>Ничего нет. Создайте новую запись.</a></td></tr>
+
+#TEMPLATE classes_row
+#
+#  %script, %id, %class, %descr
+#
+<form name="editclass%id" method="get" action="%script">
+<input id="do%id" type="hidden" name="do" value="classes-update">
+<tr>
+  <td><input type="text" size=3 readonly="yes" name="id" value="%id"></td>
+  <td><input type="text" size=30 name="class" value="%class"></td>
+  <td><input type="text" size=40 name="descr" value="%descr"></td>
+  <td><input id="submit%id" type="submit" value="сохранить"></td>
+</tr>
+</form>
+
+#TEMPLATE classes_edit
+#
+#  %script
+#  %id
+#  %class
+#  %descr
+#  %do
+#
+<center>Выполнение функции отдельного редактирования в данном модуле не предусмотрена. Дорогая редакция приносит искренние соболезнования и просит проверить ссылки.</center>
+<br>

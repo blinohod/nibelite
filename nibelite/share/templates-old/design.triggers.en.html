@@ -1,0 +1,149 @@
+# $Id: design.triggers.html 159 2008-02-19 11:20:55Z misha $
+
+#translate cms_head_triggers Рекламные коды партнёров
+
+#TEMPLATE triggers_table
+#
+#  %rows
+#
+<script type="application/x-javascript">
+	<!--
+function setSubmitDelete(what){
+  if(document.getElementById){
+    elDo = document.getElementById('do'+what);
+    elSubmit = document.getElementById('submit'+what);
+    if(elDo){
+      if(elDo.value == 'triggers-update'){
+        elDo.value = 'triggers-delete';
+        if(elSubmit)
+          elSubmit.value = 'удалить?!';
+      }else{
+        elDo.value = 'triggers-update';
+        if(elSubmit)
+          elSubmit.value = 'сохранить';
+      }
+    }
+  }
+}
+function openEdit(someid){
+  if(document.getElementById){
+    elView = document.getElementById('vdiv'+someid);
+    elEdit = document.getElementById('ediv'+someid);
+    if(elView){
+      elView.className = 'closed';
+    }
+    if(elEdit){
+      elEdit.className = 'open';
+    }
+  }
+}
+function closeEdit(someid){
+  if(document.getElementById){
+    elView = document.getElementById('vdiv'+someid);
+    elEdit = document.getElementById('ediv'+someid);
+    if(elView){
+      elView.className = 'open';
+    }
+    if(elEdit){
+      elEdit.className = 'closed';
+    }
+  }
+}
+
+	-->
+</script>
+<style type="text/css">
+.open { display:block; }
+.closed { display:none; }
+.blind {
+	border-top: 1px solid #ffffff;
+	border-bottom: 1px solid #cccccc;
+}
+</style>
+<div><b>&lt;-</b> <a href="%script?do=partners-list#anc%partner_id">вернуться в список партнёров</a></div>
+<table class=content width=100%>
+	<tr>
+		<th width="10%">ID</th>
+		<th width="10%">Код</th>
+		<th width="30%" title="Название и принадлежность этого кода">Рекламная площадка</th>
+		<th width="10%" title="Минимальная фиксированная ставка">Ставка</th>
+		<th width="10%" title="Процентная ставка">Процент</th>
+		<th width="10%" title="Стоимость тарифной единицы в гривнах">Т.ед.</th>
+		<th width="10%" title="Учитывать НДС в процентах?">НДС</th>
+		<th width="10%">Действия</th>
+	</tr>
+</table>
+%rows
+<table class=content width=100%><tr><th colspan=8><a name="add"/>Добавить новый код:</th></tr>
+<form name="inserttriggers" method="get" action="%script">
+<input type="hidden" name="do" value="triggers-insert">
+<tr>
+	<td width="10%">&nbsp;</td>
+	<td width="10%" style="text-align:center"><input type="text" size=3 name="trigger" value="" style="border:2px solid green;"></td>
+	<td width="30%" style="text-align:right">
+		Название: <input type="text" size=30 name="title" value=""><br>
+		Партнёр: %[partner_id]<br>
+	</td>
+	<td width="10%" style="text-align:center"><input type="text" size=5 name="rate_min" value=""></td>
+	<td width="10%" style="text-align:center"><input type="text" size=5 name="rate_percent" value=""></td>
+	<td width="10%" style="text-align:center"><input type="text" size=5 name="tariff" value=""></td>
+	<td width="10%" style="text-align:center"><input type="text" size=5 name="vat" value=""></td>
+	<td width="10%"><input type="submit" value="создать"></td>
+</tr>
+</form>
+</table>
+
+#TEMPLATE triggers_empty
+#
+#  %script
+#
+<center>Ничего нет. Немедленно добавьте новую запись!</center>
+
+#TEMPLATE triggers_row
+#
+#  %script, %id, %ext, %mime_type
+#
+<div class="open" id="vdiv%id"><table class="blind" width="100%" border=0 cellspacing=2 cellpadding=0>
+	<tr>
+		<td width="10%"><b>%id</b></td>
+		<td width="10%" style="text-align:center"><b>%trigger</b></td>
+		<td width="30%">
+			Название: %title<br>
+			Партнёр: %(partner_id)
+		</td>
+		<td width="10%" style="text-align:center">%rate_min</td>
+		<td width="10%" style="text-align:center">%rate_percent</td>
+		<td width="10%" style="text-align:center">%tariff</td>
+		<td width="10%" style="text-align:center">%vat</td>
+  		<td width="10%" style="text-align:center;">[<a href="javascript:void(0);" onclick="return openEdit('%id');">изменить</a>]</td>
+	</tr>
+</table></div><div class="closed" id="ediv%id"><table width="100%" class="content"><form name="edittriggers%id" method="get" action="%script"><input id="do%id" type="hidden" name="do" value="triggers-update">
+	<tr>
+		<td width="10%"><input type="text" size="3" readonly="yes" name="id" value="%id"></td>
+		<td width="10%" style="text-align:center"><input type="text" size=3 name="trigger" value="%trigger" style="border:2px solid green;"></td>
+		<td width="30%" style="text-align:right">
+			Название: <input type="text" size=30 name="title" value="%title"><br>
+			Партнёр: %[partner_id]
+		</td>
+		<td width="10%" style="text-align:center"><input type="text" size=5 name="rate_min" value="%rate_min"></td>
+		<td width="10%" style="text-align:center"><input type="text" size=5 name="rate_percent" value="%rate_percent"></td>
+		<td width="10%" style="text-align:center"><input type="text" size=5 name="tariff" value="%tariff"></td>
+		<td width="10%" style="text-align:center"><input type="text" size=5 name="vat" value="%vat"></td>
+		<td width="10%" style="text-align:center"><input id="submit%id" type="submit" value="сохранить"><br>
+			[<a href="javascript:void(0);" onclick="return setSubmitDelete('%id');" style="color:red;font-weight:bold">удалить</a>]
+			[<a href="javascript:void(0);" onclick="return closeEdit('%id');" style="font-weight:bold">отмена</a>]
+		</td>
+	</tr>
+</form></table></div>
+
+#TEMPLATE triggers_edit
+#
+#  %script
+#  %id
+#  %class
+#  %descr
+#  %do
+#
+<center>Выполнение функции отдельного редактирования в данном модуле не предусмотрена. Дорогая редакция приносит искренние соболезнования и просит проверить ссылки.
+</center>
+<br>

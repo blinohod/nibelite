@@ -1,0 +1,44 @@
+<script>
+$('#loginform').ajaxForm({
+	target: '#workzone'
+});
+
+</script>
+
+<div class="row-fluid">
+<div class="span4">&nbsp;</div>
+<div class="span4 offset4">
+
+<p>
+<br><br><br>
+</p>
+
+<TMPL_IF NAME="error_message">
+<div class="alert alert-error">
+<a class="close" data-dismiss="alert">&times;</a>
+<TMPL_VAR NAME="error_message">
+</div>
+</TMPL_IF>
+
+<form id="loginform" method="POST" class="well form-vertical" action="/nibelite/gui/fcgi/portal/default.html">
+
+<h2>Login now</h2>
+
+<div class="control-group">
+
+<label><TMPL_VAR NAME="t_core_username"></label>
+<input name="login" type="text" class="span6" placeholder="login">
+
+<label><TMPL_VAR NAME="t_core_password"></label>
+<input name="password" type="password" class="span6">
+
+</div>
+
+<div class="control-group">
+<button type="submit" class="btn btn-primary"><TMPL_VAR NAME="t_core_enter"></button>
+</div>
+
+</form>
+
+</div>
+</div>

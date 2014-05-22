@@ -1,0 +1,261 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use 5.8.0;
+
+use lib '/opt/nibelite/lib/perl';
+
+NibeliteApps->run();
+
+1;
+
+package NibeliteApps;
+
+use Nibelite::SQL;
+use base 'Nibelite::App::CLI';
+
+sub listing {
+	my ( $this, $href, $order, $delimiter ) = @_;
+	unless ($delimiter) {
+		$delimiter = '|';
+	}
+	my @buf;
+	foreach my $key (@$order) {
+		unless ( defined( $href->{$key} ) ) {
+			$href->{$key} = "";
+		}
+		$href->{$key} =~ s/\n/\\n/g;
+		$href->{$key} =~ s/\r/\\r/g;
+		$href->{$key} =~ s/\\/\\\\/g;
+		$href->{$key} =~ s/\|/\\|/g;
+		push @buf, $href->{$key};
+	}
+	return join( $delimiter, @buf );
+}
+
+sub action_apps_list {
+	my ( $this, %params ) = @_;
+	my $sql = Nibelite::SQL->select(
+		fields => {
+			id     => 'ca.id',
+			name   => 'ca.name',
+			active => 'ca.active',
+			descr  => 'ca.descr'
+		},
+		tables => { 'ca' => 'core.apps' },
+		order => [ [ 'name', 'asc' ] ]
+	);
+
+	if ( $params{active} ) {
+		$sql->where( ["ca.active"] );
+	}
+
+	my $filter = ( defined( $params{__non_options__} ) and $params{__non_options__} ) || [];
+	if ( scalar(@$filter) ) {
+		my $i = 0;
+		foreach my $f (@$filter) {
+			$sql->where( ["ca.name ILIKE :term_$i OR ca.descr ILIKE :term_$i"] );
+			$f =~ s/([%_])/\\$1/g;
+			$sql->params( { "term_$i" => "%$f%" } );
+			$i++;
+		}
+	}
+
+	if ( $params{"has-config"} ) {
+		unless ( $params{"has-config"} =~ /=/ ) {
+			$this->speak("Invalid configuration filter; must be in the form of tag=value, as in --has-config=tag=value");
+			$this->exitcode(1);
+			return undef;
+		}
+		my ( $tag, $value ) = split /=/, $params{"has-config"};
+		$sql->joins( ['JOIN core.apps_conf cc ON (cc.app_id = ca.id)'] );
+		$sql->where( [ 'cc.tag = :tag', 'cc.value = :value' ] );
+		$sql->params( { tag => $tag, value => $value } );
+	}
+
+	my $sth = $sql->find( $this->dbh );
+	my $order = [ 'id', 'name', 'active', 'descr' ];
+	my @buf;
+	print STDOUT join( "\t", @$order ) . "\n";
+	while ( my $row = $sth->fetchrow_hashref() ) {
+		print STDOUT $this->listing( $row, $order, "\t" ) . "\n";
+	}
+} ## end sub action_apps_list
+
+sub action_configs_list {
+	my ( $this, %params ) = @_;
+	my $sql = Nibelite::SQL->select(
+		fields => {
+			app_id => 'ca.id',
+			name   => 'ca.name',
+			tag    => 'cc.tag',
+			value  => 'cc.value'
+		},
+		tables => { 'ca' => 'core.apps' },
+		joins  => ['LEFT JOIN core.apps_conf cc ON (cc.app_id = ca.id)'],
+		order => [ [ 'name', 'asc' ], [ 'tag', 'asc' ] ]
+	);
+
+	if ( $params{active} ) {
+		$sql->where( ["ca.active"] );
+	}
+
+	if ( $params{app} ) {
+		$sql->where( ["ca.name = :app"] );
+		$sql->params( { app => $params{app} } );
+	}
+
+	my $filter = ( defined( $params{__non_options__} ) and $params{__non_options__} ) || [];
+	if ( scalar(@$filter) ) {
+		my $i = 0;
+		foreach my $f (@$filter) {
+			$sql->where( ["cc.name ILIKE :term_$i OR cc.value ILIKE :term_$i"] );
+			$f =~ s/([%_])/\\$1/g;
+			$sql->params( { "term_$i" => "%$f%" } );
+			$i++;
+		}
+	}
+
+	my $sth = $sql->find( $this->dbh );
+	my $order = [ 'app_id', 'name', 'tag', 'value' ];
+	my @buf;
+	print STDOUT join( "\t", @$order ) . "\n";
+	while ( my $row = $sth->fetchrow_hashref() ) {
+		print STDOUT $this->listing( $row, $order, "\t" ) . "\n";
+	}
+
+} ## end sub action_configs_list
+
+sub action_app_add {
+	my ( $this, %params ) = @_;
+	my $name = ( defined( $params{__non_options__} ) and scalar( @{ $params{__non_options__} } ) and $params{__non_options__}->[0] ) || "";
+	unless ($name) {
+		$this->speak("app-add: missing name");
+		$this->exitcode(1);
+		return undef;
+	}
+	my $field_map    = {};
+	my @fields       = ('name');
+	my @values       = ( $name, );
+	my @placeholders = ( '?', );
+	foreach my $field (qw(active descr)) {
+		if ( defined( $params{$field} ) ) {
+			my $fldname = $field;
+			$fldname =~ s/-/_/g;
+			push @fields, $fldname;
+			push @values, $params{$field};
+			if ( defined( $field_map->{$field} ) ) {
+				push @placeholders, $field_map->{$field};
+			} else {
+				push @placeholders, '?';
+			}
+		}
+	}
+	my $sql = "INSERT INTO core.apps (%s) VALUES (%s)";
+	eval { my $res = $this->dbh->call( sprintf( $sql, join( ", ", @fields ), join( ", ", @placeholders ) ), @values ); };
+	if ($@) {
+		$this->speak( "Could not add application: " . $this->dbh->dbh->errstr );
+		$this->exitcode(1);
+	}
+
+} ## end sub action_app_add
+
+sub action_app_del {
+	my ( $this, %params ) = @_;
+	my $name = ( defined( $params{__non_options__} ) and scalar( @{ $params{__non_options__} } ) and $params{__non_options__}->[0] ) || "";
+	unless ($name) {
+		$this->speak("app-del: missing name");
+		$this->exitcode(1);
+		return undef;
+	}
+	my $sql = "DELETE FROM core.apps WHERE name = ?";
+	eval { my $res = $this->dbh->call( $sql, $name ); };
+	if ($@) {
+		$this->speak( "Could not delete application: " . $this->dbh->dbh->errstr );
+		$this->exitcode(1);
+	}
+}
+
+sub action_configure {
+	my ( $this, %params ) = @_;
+	my $name = ( defined( $params{__non_options__} ) and scalar( @{ $params{__non_options__} } ) and $params{__non_options__}->[0] ) || "";
+	unless ($name) {
+		$this->speak("config: missing application name");
+		$this->exitcode(1);
+		return undef;
+	}
+
+	my $tag = ( defined( $params{__non_options__} ) and scalar( @{ $params{__non_options__} } ) and $params{__non_options__}->[1] ) || "";
+	unless ($name) {
+		$this->speak("config: missing tag name");
+		$this->exitcode(1);
+		return undef;
+	}
+
+	my $value = ( defined( $params{__non_options__} ) and scalar( @{ $params{__non_options__} } ) and $params{__non_options__}->[2] ) || "";
+	my $sql   = "UPDATE core.apps_conf SET value = ? FROM core.apps WHERE core.apps_conf.app_id = core.apps.id AND core.apps.name = ? AND core.apps_conf.tag = ?";
+	my $res   = $this->dbh->call( $sql, $value, $name, $tag );
+	unless ( $res->rows ) {
+		my $sql = "INSERT INTO core.apps_conf (app_id, tag, value) VALUES  ((SELECT id FROM core.apps WHERE name = ?), ?, ?)";
+		$res = $this->dbh->call( $sql, $name, $tag, $value );
+	}
+} ## end sub action_configure
+
+sub action_deconfigure {
+	my ( $this, %params ) = @_;
+	my $name = ( defined( $params{__non_options__} ) and scalar( @{ $params{__non_options__} } ) and $params{__non_options__}->[0] ) || "";
+	unless ($name) {
+		$this->speak("config: missing application name");
+		$this->exitcode(1);
+		return undef;
+	}
+
+	my $tag = ( defined( $params{__non_options__} ) and scalar( @{ $params{__non_options__} } ) and $params{__non_options__}->[1] ) || "";
+	unless ($name) {
+		$this->speak("config: missing tag name");
+		$this->exitcode(1);
+		return undef;
+	}
+	my $sql = "DELETE FROM core.apps_conf USING core.apps WHERE core.apps_conf.app_id = core.apps.id AND core.apps.name = ? AND core.apps_conf.tag = ?";
+	my $res = $this->dbh->call( $sql, $name, $tag );
+
+}
+
+sub action_help {
+	my ( $this, %params ) = @_;
+	my $context = 'usage';
+	if ( defined( $params{__non_options__} ) && scalar( @{ $params{__non_options__} } ) ) {
+		$context = $params{__non_options__}->[0];
+	}
+	my $ctxmap = {
+		usage     => "Usage:\n\n\t$0 [command] [parameters...] [--option=value] [--option=value] ...\n\n" . "where command is one of\n" . "\tapp-add\t\tAdd an application/channel\n" . "\tapp-del\t\tDelete an application/channel\n" . "\tapps-list\tList available applications\n" . "\tconfigs-list\tList available configuration\n" . "\tconfigure\tAdd/modify application's configuration tag\n" . "\tdecofigure\tRemove a configuration tag from an application\n" . "\tusage\t\tThis screen\n\n" . "For parameters and options, use\n\n" . "\t$0 help command\n\n" . "where command is the command you need help with.\n",
+		"app-add" => "app-add - add an application/channel\n\n"
+		  . "Usage: $0 account-add <name> [--active=0|1] [--descr=description]\n\n",
+		"app-del" => "app-del - delete an application/channel\n\n"
+		  . "Usage: $0 app-del <name>\n\n",
+		"apps-list" => "apps-list - List available applications\n\n"
+		  . "Usage: $0 apps-list [keyword] [--active] [--has-config=tag=value]\n\n"
+		  . "keyword is searched in application name and description,\n"
+		  . "--active searches only active applications,\n"
+		  . "--has-config returns only applications with this specific configuration tag of this specific value.\n\n",
+		"configs-list" => "configs-list - list configuration\n\n"
+		  . "Usage: $0 configs-list [keyword] [--app=application]\n\n"
+		  . "keyword is searched in tags and values, --app can limit list to a single application.\n\n",
+		"configure" => "configure - configure an application\n\n"
+		  . "Usage: $0 configure <app name> <tag> <value>\n\n",
+		"deconfigure" => "deconfigure - remove a tag from an application\n\n"
+		  . "Usage: $0 deconfigure <app name> <tag>\n\n",
+	};
+	if ( $ctxmap->{$context} ) {
+		print STDOUT $ctxmap->{$context};
+	} else {
+		print STDOUT "Sorry, there is no help for this topic ($context).\n";
+	}
+} ## end sub action_help
+
+sub action_unknown {
+	return action_help(@_);
+}
+
+1;

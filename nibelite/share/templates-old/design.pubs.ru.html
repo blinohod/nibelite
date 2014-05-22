@@ -1,0 +1,93 @@
+# $Id: design.pubs.html 159 2008-02-19 11:20:55Z misha $
+
+#translate save_first 		пока неактивно
+#translate pubtype_author 	авторские права
+#translate pubtype_other 	смежные права
+#translate pubtype_vendor 	поставщик контента
+
+# pubs = new owners:
+#TEMPLATE pubs_table
+#
+#  %rows
+#
+<div>[<a href="%script?do=pubs-add">добавить правообладателя</a> | <a href="%script?do=pubs-access">пересобрать пароли статистики</a>]</div>
+<table class=content width=100%><tr><th>ID</th><th>Название, контакт, копирайт</th><th>договор</th><th>логин</th></tr>
+%rows
+</table>
+
+#TEMPLATE pubs_empty
+#
+#  %script
+#
+<tr><td colspan=4>База пуста. <a href="%script?do=pubs-add">Щёлкните здесь для добавления правообладателя.</a></td></tr>
+
+
+#TEMPLATE pubs_row
+#
+#  'title','start_date','end_date','login','pwd','contacts','copyright','id'
+#  'script'
+#
+<tr>
+  <td><b>%id</b></td>
+  <td><a href="%script?do=pubs-edit&id=%id">%title</a><br>
+      тип: %type<br>
+      <small>Единиц контента: %count<br>Контакты: %contacts<br>Копирайт: %copyright</small></td>
+  <td>с %start_date по %end_date%classes</td>
+  <td>%login</td>
+</tr>
+
+#TEMPLATE pubs_edit
+#
+#  'title','start_date','end_date','login','pwd','contacts','copyright','id'
+#  %script
+#
+<center><table class=content>
+<form method=post action="%script">
+<tr><th>ID</th><th>Название правообладателя, контакты</th><th>Логин-пароль</th></tr>
+<tr>
+<td><input type=text size=5 maxlength=5 name="id" value="%id"%dis></td>
+<td><input type=text size=40 maxlength=128 name="title" value="%title"><br>
+Тип: %type<br>
+<textarea cols=40 rows=3 name="contacts">%contacts</textarea></td>
+<td><input type=text size=20 maxlength=32 name="login" value="%login"><br><input type=text size=20 maxlength=32 name="pwd" value="%pwd"></td>
+</tr>
+<tr><th>&nbsp;</th><th>Копирайт</th><th>Время действия</th></tr>
+<tr><td>&nbsp;</td>
+<td><input type=text size=40 maxlength=128 name="copyright" value="%copyright"></td>
+<td>%sdate - начало<br>%edate - окончание</td>
+</tr>
+<tr><td>&nbsp;</td><td colspan=2><input type=submit value="  Сохранить  "></td></tr>
+<input type=hidden name=do value="%do"></form>
+</table>
+
+<br>
+
+<table class=content>
+<form method=post action="%script">
+<tr><th colspan=5>Ставки для различных классов контента:</th></tr>
+<tr><td>Класс</td><td>Минимум</td><td>Процент</td><td>Тип</td><td>&nbsp;</td></tr>
+%classes_list
+<tr><th colspan=5>Новая запись:</th></tr>
+<tr><td>%sel_classes</td>
+    <td><input type=text size=7 maxlength=7 name="rate_min" value="0.00"></td>
+    <td><input type=text size=7 maxlength=7 name="rate_percent" value="0">%</td>
+    <td>%sel_bigrate</td>
+    <td><input type=submit %cdis value="  OK  "></td>
+</tr>
+<input type=hidden name=do value="pubs-addclass"><input type=hidden name="id" value="%id"></form>
+</table>
+
+</center>
+<br>
+
+#TEMPLATE pubs_class
+#  'price_id' => $rec['id'],
+#  'rate_percent' => $rec['rate_percent'],
+#  'rate_min' => $rec['rate_min'],
+#  'bigrate' => $rec['bigrate'],
+#  'id' => $id,
+#  'script' => $_SERVER['SCRIPT_NAME'],
+#  'class_name' => $classes[$rec['class_id']]
+
+<tr><td>%class_name</td><td>%rate_min</td><td>%rate_percent%</td><td>%bigrate</td><td>[<a href="%script?do=pubs-delclass&id=%id&price_id=%price_id">удалить</a>]</td></tr>
+

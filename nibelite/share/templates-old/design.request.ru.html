@@ -1,0 +1,113 @@
+#TEMPLATE request_fakeform
+#
+#  %script
+#
+<h3>Эмулятор отправки SMS</h3>
+<center><table class=content>
+<p>С помощью эмулятора можно проводить тестирование приложений платформы,
+отправляя MO-сообщения от имени абонентов.</p>
+<form method=post action="%script">
+<tr><th>Исходный канал:</th><td>%apps</td></tr>
+<tr><th>Номер отправителя:</th><td><input type=text size=40 name=prefix value="%dst_addr"></td></tr>
+<tr><th>Номер получателя:</th><td><input type=text size=40 name=msisdn value="%msisdn"></td></tr>
+<tr><th>Текст SMS:</th><td><input type=text size=40 name=request value="%request"></td></tr>
+<tr><td>&nbsp;</td><td><input type=submit value="Отправить SMS"></td></tr>
+<input type=hidden name=do value="request-send"></form>
+</table></center>
+<br>
+
+#TEMPLATE request_reply
+#
+#  %script
+#
+<div align=center><b>Ответить на SMS с ID %id</b></div>
+<center><table class=content>
+<form method=post action="%script">
+<tr><td>MSISDN:</td><td style="font-weight:bold">%msisdn</td></tr>
+<tr><td>SMS запрос получен:</td><td>%time</td></tr>
+<tr><th>Канал доставки:</th><td>%apps</td></tr>
+<tr><td>Текст сообщения:</td><td><input type=text size=60 maxlength=160 name=request value="%request"></td></tr>
+<tr><td>&nbsp;</td><td><input type=submit value="Отправить"></td></tr>
+<input type=hidden name=do value="request-send">
+<input type=hidden name=id value="%id">
+</form>
+</table></center>
+<br>
+
+
+#TEMPLATE request_filter
+<center>
+<table class=content>
+<form method=post action="%script">
+<input type=hidden name=do value="request-list">
+<tr><th colspan=8>Отфильтровать сообщения:</th></tr>
+<tr>
+	<th>MSISDN</th>
+	<th>Канал (короткий номер)</th>
+	<th title="Искать сообщения старше, чем указано">до даты</th>
+	<th>Статус</th>
+	<th>Текст сообщения</th>
+	<th>Кол-во на странице</th>
+	<th>&nbsp;</th>
+</tr>
+<tr>
+	<td><input type=text name="fmsisdn" value="%fmsisdn" size=16></td>
+	<td>%operator</td>
+	<td>%time</td>
+	<td>%status</td>
+	<td><input type=text name="fcode" value="%fcode" size=10></td>
+	<td><input type=text name="lim" value="%lim" size=3></td>
+	<td><input type=submit value="Искать"></td>
+</tr>
+</form>
+</table>
+</center>
+<br>
+
+#TEMPLATE request_nav
+<div align=center>%nav</div>
+<br>
+
+#TEMPLATE request_qty
+<div align=center><b>Найдено сообщений: %qty</b></div>
+<br>
+
+#TEMPLATE request_table
+<center><table class=content>
+<tr>
+	<th>Действие</th><th>ID</th><th>Оператор</th><th>Откуда</th><th>Куда</th><th>Содержимое</th><th>Время</th><th>Тип</th><th>Статус</th>
+</tr>
+%rows
+</table></center>
+
+#TEMPLATE request_row
+<tr>
+<td><a href="%script?do=request-reply&id=%id">[ответить]</a>
+	<!--<a href="javascript:{void(0);}" onClick="window.open('/card.php?do=cards-show&id=%id', 'card', 'width=480,height=400,scrollbars=yes');">[подробнее]</a>-->
+</td>
+<td>%id</td>
+<td>%mno</td>
+<td>%src_addr</td>
+<td>%dst_addr</td>
+<td>%msg_body</td>
+<td>%time</td>
+<td>%msg_type</td>
+<td>%status</td>
+</tr>
+
+#TEMPLATE support_menu
+<a href="%script?do=request-list">Просмотр очереди SMS</a>
+- <a href="%script?do=request-fake">Эмулятор SMS</a>
+
+#TEMPLATE support_default
+<h1>Интерфейс службы поддержки</h1>
+<dl>
+	<dt><a href="%script?do=request-list">Запросы клиентов</a></dt>
+	<dd>Показывает все запросы клиентов (свежие - в начале списка).
+	Позволяет искать запрос по номеру телефона, отправлять ответ на запрос и так далее.</dd>
+	<dt><a href="%script?do=request-fake">Эмулировать запрос</a></dt>
+	<dd>Позволяет эмулировать запрос как бы от клиента. Полезно при отправке сообщений
+	или контента по каналу, где не требуется подтверждение запроса оператором.</dd>
+</dl>
+
+

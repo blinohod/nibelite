@@ -1,0 +1,127 @@
+#!/usr/bin/env perl
+
+use 5.8.0;
+use warnings 'all';
+use strict;
+
+use lib '/opt/nibelite/lib/perl';
+
+NetSDSApp->run(
+	daemon      => 1,
+	use_pidfile => 1,
+	verbose     => 0,
+	conf_file   => '/opt/nibelite/etc/nibelite.conf',
+	infinite    => 1,
+);
+
+1;
+
+package NetSDSApp;
+
+use constant DEFAULT_CHECK_TIMEOUT => 3600;    # Sleep 1 hour between iterations by default
+
+use base 'Nibelite::App';
+
+use POSIX;
+use NetSDS::Util::File;
+
+sub start {
+
+	my ($this) = @_;
+
+	$this->mk_accessors('app_conf');
+
+	my $app_id = $this->get_app_id('sys_check_chan');
+	unless ($app_id) {
+		die "Cannot find 'sys_check_chan' component in core.apps SQL table";
+	}
+
+	$this->app_conf( $this->get_app_conf($app_id) );
+
+	unless ( $this->app_conf()->{'mail_from'} ) {
+		die "Cannot find mail_from parameter!";
+	}
+
+	unless ( $this->app_conf()->{'mail_to'} ) {
+		die "Cannot find mail_to parameter!";
+	}
+
+	unless ( int( $this->app_conf()->{'check_timeout'} ) ) {
+		$this->{app_conf}->{check_timeout} = DEFAULT_CHECK_TIMEOUT;
+	}
+
+} ## end sub start
+
+sub process {
+
+	my ($this) = @_;
+
+	# Fetch available channels
+	foreach my $chan ( @{ $this->dbh->fetch_call("select * from core.apps where name like 'chan_%'") } ) {
+
+		my $chan_id   = $chan->{id};
+		my $chan_name = $chan->{name};
+
+		my $chan_conf = $this->get_app_conf($chan_id);
+
+		# Skip channels without parameter
+		unless ( defined( $chan_conf->{'check_activity_interval'} ) ) {
+			$this->log( 'info', "Skip activity test for channel $chan_name" );
+			next;
+		}
+
+		# Set to 60 minutes if not positive integer
+		my $interval = int( $chan_conf->{'check_activity_interval'} ) || 60;
+
+		# Set barrier to 1 if not defined
+		my $barrier = int( $chan_conf->{'check_activity_barrier'} ) || 1;
+
+		$this->log( 'info', "Check activity on channel [$chan_name] with interval [$interval minutes]; barrier [$barrier MO SM]" );
+
+		$interval = "$interval minutes";
+
+		my ($res) = @{ $this->dbh->fetch_call( "select count(id) as cnt from core.messages where src_app_id = ? and date_received > (now() - ?::interval)", $chan_id, $interval ) };
+		my $num_mo = $res->{cnt};
+
+		# Check barrier
+		if ( $num_mo < $barrier ) {
+			$this->log( 'warning', "Low activity on channel [$chan_name]: $num_mo messages received within $interval ." );
+			$this->send_notice( $chan_name, $num_mo, $barrier, $interval );
+		} else {
+			$this->log( 'info', "Channel [$chan_name] is alive." );
+		}
+
+	} ## end foreach my $chan ( @{ $this...})
+
+	# Sleep unless we should exit
+	unless ( $this->{to_finalize} ) {
+		sleep $this->app_conf()->{'check_timeout'};
+	}
+
+} ## end sub process
+
+sub send_notice {
+
+	my ( $this, $chan_name, $traffic, $interval ) = @_;
+
+	my $mail_from = $this->app_conf->{mail_from};
+	my $mail_to   = $this->app_conf->{mail_to};
+
+	my $subject = "WARNING! Low traffic on channel $chan_name";
+
+	my $body = "Attention!\nMO SMS traffic on channel '$chan_name' is too low ($traffic) within last $interval";
+
+	my $message = sprintf( "From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s", $mail_from, $mail_to, $subject, $body );
+
+	# Send message via sendmail
+	my $tmp_file = tmpnam();
+	file_write( $tmp_file, $message );
+	system("/usr/sbin/sendmail $mail_to < $tmp_file");
+	system("/bin/rm -f $tmp_file");
+
+	# Sleep 5 second to aboid mass email traffic
+	sleep 5;
+
+} ## end sub send_notice
+
+1;

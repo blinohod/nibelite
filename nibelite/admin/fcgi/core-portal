@@ -1,0 +1,58 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+Portal->run();
+
+package Portal;
+
+use lib '/opt/nibelite/lib/perl';
+use base 'Nibelite::App::GUI';
+use File::Basename qw(dirname);
+
+sub action_menu {
+	my $this = shift;
+	my $user = $this->user->uid;
+	#my $q    = "SELECT s.service, s.descr FROM core.services s WHERE s.visible AND s.uri='internal' AND core.authorize(?, s.service, 'menu')";
+	my $q    = "SELECT s.service, s.descr FROM core.services s WHERE s.visible AND s.uri='internal'";
+	#my $r    = $this->dbh->fetch_call( $q, $user );
+	my $r    = $this->dbh->fetch_call( $q );
+	my $result;
+	foreach my $menu (@$r) {
+		$result->{ $menu->{service} } = $menu->{descr};
+	}
+	return { menu => $result };
+}
+
+sub action_login {
+	my ( $this, $data, %params ) = @_;
+	warn "User=".$params{'user'}." Password=".$params{'password'};
+	$this->user->authenticate( username => $params{'user'}, password => $params{'password'} );
+	if ( $this->user->is_authenticated ) {
+		my %options;
+		if ( $params{'remember'} ne '' ) {
+			$options{'expire'} = '+8h';
+		}
+		$this->set_cookie( name => 'SESSID', value => $this->user->session_key, %options );
+		return { 'id' => $this->user->uid, 'user' => $this->user->username };
+	} else {
+		return { 'user' => $params{'user'} }, { 'status' => 'error', 'message' => 'Login incorrect' };
+	}
+}
+
+sub action_check_login {
+	my ( $this, $data, %params ) = @_;
+	my $status  = $this->user->uid ? 'ok' : 'error';
+	my $message = $this->user->uid ? 'ok' : 'You are not logged in.';
+	return { id => $this->user->uid, login => $this->user->username }, { status => $status, message => $message };
+}
+
+sub action_logout {
+	my ( $this, $data, %params ) = @_;
+	$this->authdb->delete_session( $this->user->session_key );
+	$this->set_cookie( name => 'SESSID', value => '' );
+	return {};
+}
+
+1;

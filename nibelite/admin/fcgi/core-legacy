@@ -1,0 +1,31 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+SubmenuLegacy->run();
+
+package SubmenuLegacy;
+
+use lib '/opt/nibelite/lib/perl';
+use base 'Nibelite::App::GUI';
+
+sub action_info {
+	my ( $this, $data, %params ) = @_;
+	
+	my $title = 'Legacy menu';
+	my $title_data = $this->dbh->fetch_call("select descr from core.services where service='core-legacy'");
+	if (@$title_data) {
+		$title = $title_data->[0]{descr};
+	}
+	
+	my $menu_data = $this->dbh->fetch_call("select uri,descr from core.services where visible and uri ilike '%.php'");
+	my $menu = { map { $_->{uri} => $_->{descr} } @$menu_data };
+	
+	return {
+		title => $title,
+		menu => $menu
+	};
+}
+
+1;

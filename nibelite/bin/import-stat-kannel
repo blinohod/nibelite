@@ -1,0 +1,129 @@
+#!/usr/bin/env perl
+
+use 5.8.0;
+use warnings 'all';
+use strict;
+
+use lib '/opt/nibelite/lib/perl';
+
+NetSDSApp->run(
+	daemon      => 0,
+	use_pidfile => 0,
+	verbose     => 1,
+	conf_file   => '/opt/nibelite/etc/nibelite.conf',
+	infinite    => 0,
+);
+
+1;
+
+package NetSDSApp;
+
+use base 'Nibelite::App';
+
+use Data::Dumper;
+use NetSDS::Util::File;
+use NetSDS::Util::String;
+
+sub start {
+
+	my ($this) = @_;
+
+}
+
+sub process {
+
+	my ($this) = @_;
+
+	my $ins_sql = "insert into stat.kannel_sms (direction, received, smsc, src, dst, fid, coding) values (?, ?, ?, ?, ?, ?, ?)";
+
+	my $i = 0;
+	my $cnt;
+
+	while (<STDIN>) {
+
+		my $row = $this->parse_record($_);
+
+		next unless ($row) ;
+
+		# warn Dumper($row);
+		$this->dbh->call(
+			$ins_sql,
+			$row->{dir},
+			$row->{received},
+			$row->{smsc},
+			$row->{src},
+			$row->{dst},
+			$row->{fid},
+			$row->{coding},
+		);
+
+		$i++;
+		$cnt++;
+
+		if ( $i eq 1000 ) {
+			$i = 0;
+			warn "$cnt\n";
+			sleep 1;
+		}
+
+	} ## end while (<STDIN>)
+
+	# Fetch available channels
+
+} ## end sub process
+
+sub parse_record {
+
+	my ( $this, $rec ) = @_;
+
+	my $row = {};
+
+	# Fetch date and time
+	if ( $rec =~ /^(\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d)/ ) {
+		$row->{received} = $1;
+	} else {
+		print "ERROR [no date]: $rec";
+		return undef;
+	}
+
+	if ( $rec =~ /\d\sReceive DLR\s\[/ ) {
+		$row->{dir} = 'DLR';
+	} elsif ( $rec =~ /\d\sReceive SMS\s\[/ ) {
+		$row->{dir} = 'MO';
+	} elsif ( $rec =~ /\d\sSent SMS\s\[/ ) {
+		$row->{dir} = 'MT';
+	} else {
+		print "ERROR [no direction]: $rec";
+		return undef;
+	}
+
+	if ( $rec =~ /\s\[SMSC:(\S+)\]/ ) {
+		$row->{smsc} = $1;
+	}
+
+	if ( $rec =~ /\s\[from:\+?(\S+)\]/ ) {
+		$row->{src} = $1;
+	}
+
+	if ( $rec =~ /\s\[to:\+?(\S+)\]/ ) {
+		$row->{dst} = $1;
+	}
+
+	if ( $rec =~ /\s\[FID:(\S*)\]/ ) {
+		$row->{fid} = $1;
+	}
+
+	if ( $rec =~ /\s\[flags:[^:]*:([^:]*):/ ) {
+		$row->{coding} = $1;
+	}
+
+	return $row;
+} ## end sub parse_record
+
+#
+# 2012-03-10 17:02:07 Receive DLR [SMSC:smpp-tcell92] [SVC:nibelite] [ACT:nikita_tj] [BINF:] [FID:5999A31D] [META:?smpp?dlr_err=%03%00%00&] [from:4446] [to:992927168405] [flags:-1:-1:-1:-1:1] [msg:244:.i.d.:.1.5.0.3.2.4.0.9.8.9. .s.u.b.:.0.0.1. .d.l.v.r.d.:.0.0.1. .s.u.b.m.i.t. .d.a.t.e.:.1.2.0.3.1.0.1.7.0.2. .d.o.n.e. .d.a.t.e.:.1.2.0.3.1.0.1.7.0.2. .s.t.a.t.:.D.E.L.I.V.R.D. .e.r.r.:.0.0.0. .T.e.x.t.:.!.?.0.A.8.1.>.!.!.<.>.B.@.8. .?.@.8.:.>] [udh:0:]
+# 2012-03-10 17:02:54 Receive SMS [SMSC:smpp-babilon] [SVC:] [ACT:Vint_VSMS2] [BINF:CMT] [FID:] [META:?smpp?] [from:+992918722951] [to:4446] [flags:-1:2:-1:0:-1] [msg:104:007300680073002A006B0061006C0069006E0069006E0020004500430048005200550045004D002000310036003500360032002B00530020004E00690063006B002000530041004D00530055004E0047002D00470054002D00530035003500360030002B0059004A] [udh:0:]
+# 2012-03-10 17:03:15 Sent SMS [SMSC:smpp-babilon] [SVC:nibelite] [ACT:] [BINF:] [FID:2960132237] [META:] [from:4446] [to:992918722951] [flags:-1:2:-1:-1:3] [msg:106:0421043F0430044104380431043E00210421043C043E0442044004380020043F04400438043A043E043B044B00200068007400740070003A002F002F007700610070002E00730061006D00730075006E0067002E00720075002F0073006D0069006C006500610064002F] [udh:0:]
+# 2012-03-10 17:03:27 Receive SMS [SMSC:smpp-tkmobile] [SVC:] [ACT:Voice1] [BINF:] [FID:] [META:?smpp?] [from:+992951438430] [to:8885] [flags:-1:2:-1:0:-1] [msg:140:0431043004450440043E043C002E00320039002E04440435043204400430043B002E0437043E0434044004430437002E0434043E0448044204350434002E0431043E002E002E00370441043E043B043004330438002E04420430043104400438043A002E04450430043C043A04430440044104300442002E04470430043C0448043504340418041C04200423] [udh:0:]
+#
+1;

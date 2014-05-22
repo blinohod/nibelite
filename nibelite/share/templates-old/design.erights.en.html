@@ -1,0 +1,37 @@
+#TEMPLATE erights_edit
+#
+# %script, %id, %rights, %owners
+#
+
+<center><table class=content>
+<form method=post action="%script">
+<input type=hidden name=do value="erights-add"><input type=hidden name=id value="%id">
+<tr><td colspan=5>
+Исполнитель: %artist<br>
+Название: %title<br>
+Автор: %author<br>
+</td></tr>
+<tr><td colspan=4>Добавить: %sel_pubs <input type="text" name="part" size=7 value="100">%</td>
+<td><input type=submit value="  Добавить  "></td></tr></form>
+<tr><td colspan=5>&nbsp;</td></tr>
+
+<tr><th>Del</th><th>Владелец</th><th>Доля</th><th>Начиная с</th><th>Заканчивая</th></tr>
+<form method=post action="%script">
+<input type=hidden name=do value="erights-manage"><input type=hidden name=id value="%id">
+%rights
+<tr><td colspan=4>&nbsp;</td>
+<td><input type=submit value="  Изменить  "></th></tr></td></tr></form>
+</form>
+
+</table></center>
+<br>
+
+#TEMPLATE erights_row
+<tr>
+<td><input type=checkbox name="del[%right_id]" value=1></td>
+<td>%sel_pubs</td>
+<td><input type=text size=5 maxlength=5 name="part[%right_id]" value="%part">%</td>
+<td>%sdate</td>
+<td>%edate</td>
+</tr>
+

@@ -1,0 +1,49 @@
+<!-- div class="ui-widget ui-widget-content ui-corner-all">
+<form method="get" action="/nibelite/admin/fcgi/core-i18n/export.file">
+	<table border="0" cellpadding="0" cellspacing="8">
+		<tr>
+			<td colspan="5"><t>i18n/export_to_sql</t></td>
+		</tr>
+		<tr>
+			<td><t>i18n/language</t>:</td>
+			<td><input type="text" name="lang" id="trExportLang" /></td>
+			<td><t>i18n/service</t>:</td>
+			<td><input type="text" name="service" id="trExportService" /></td>
+			<td><input type="submit" name="s" value="Ok" /></td>
+		</tr>
+	</table>
+</form>
+</div>
+<br/ -->
+<table width="100%" id="nlTransTable">
+	<thead>
+		<tr>
+			<th>ID</th>
+			<th><t>i18n/language</t></th>
+			<th><t>i18n/service</t></th>
+			<th><t>i18n/keyword</t></th>
+			<th><t>i18n/translation</t></th>
+			<th>&nbsp;</th>
+		</tr>
+	</thead>
+	<tbody />
+</table>
+
+<div id="transEditDialog" style="display:none">
+	<div id="transEditError" style="display:none" class="ui-state-error"></div>
+	<form id="transEditForm">
+		<input type="hidden" name="id" id="transEdit_id"/>
+		<table border="0" cellpadding="2" cellspacing="0" width="100%">
+			<tr><th><t>i18n/language</t></th><th><t>i18n/service</t></th><th><t>i18n/keyword</t></th></tr>
+			<tr>
+				<td><input type="text" size="4" maxlength="2" name="lang" /></td>
+				<td><input id="teService" type="text" size="16" name="service" /></td>
+				<td><input id="teKeyword" type="text" size="32" style="width:100%" name="keyword" /></td>
+			</tr>
+			<tr><th colspan="3"><t>i18n/translation</t></th></tr>
+			<tr><td colspan="3">
+				<textarea name="value" cols="40" rows="4" style="width:100%">Siden finnes ikke</textarea>
+			</td></tr>
+		</table>
+	</form>
+</div>

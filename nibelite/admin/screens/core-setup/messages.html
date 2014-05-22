@@ -1,0 +1,67 @@
+<table width="100%" id="nlMessagesTable">
+	<!-- id src_app_id src_app_name src_addr dst_app_id dst_app_name dst_addr date_received msg_status msg_type msg_body -->
+	<thead>
+		<!-- tr>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th><select name="messagesSrcAppId" id="messagesSrcAppId" style="width:7em"><option value="" selected="1"><t>messages/all_channels</t></option></select></th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+			<th><select name="messagesDstAppId" id="messagesDstAppId" style="width:7em"><option value="" selected="1"><t>messages/all_channels</t></option></select></th>
+			<th>&nbsp;</th>
+			<th><input type="text" name="messagesDateReceived" id="messagesDateReceived" value="" size="10" /></th>
+			<th><select name="messagesMsgStatus" id="messagesMsgStatus" style="width:6em">
+				<option value="" selected="1"><t>messages/status_any</t></option>
+				<option value="fail"><t>messages/status_fail</t></option>
+				<option value="wait"><t>messages/status_wait</t></option>
+				<option value="ok"><t>messages/status_ok</t></option>
+			</select></th>
+			<th><select name="messagesMsgType" id="messagesMsgType" style="width:6em"><option value="" selected="1"><t>messages/all_types</t></option></select></th>
+			<th>&nbsp;</th>
+			<th>&nbsp;</th>
+		</tr -->
+		<tr>
+			<th width="50">ID</th>
+			<th>src_app_id</th>
+			<th width="100"><t>messages/th_src_app_name</t></th>
+			<th width="100"><t>messages/th_src_addr</t></th>
+			<th>dst_app_id</th>
+			<th width="100"><t>messages/th_dst_app_name</t></th>
+			<th width="100"><t>messages/th_dst_addr</t></th>
+			<th width="100"><t>messages/th_date_received</t></th>
+			<th width="100"><t>messages/th_msg_status</t></th>
+			<th width="100"><t>messages/th_msg_type</t></th>
+			<th><t>messages/th_msg_body</t></th>
+			<th width="100">&nbsp;</th>
+		</tr>
+	</thead>
+	<tbody />
+</table>
+
+<div id="messagesDialog" style="display:none">
+	<div id="messagesError" style="display:none" class="ui-state-error"></div>
+	<form id="messagesForm">
+		<table border="0" cellpadding="2" cellspacing="0" width="100%">
+			<tr>
+				<td><t>messages/form_src_app_name</t></td>
+				<td><select name="src_app_id" id="messagesFormSrcAppId"></select></td>
+			</tr>
+			<tr>
+				<td><t>messages/form_src_addr</t></td>
+				<td><input type="text" name="src_addr" /></td>
+			</tr>
+			<tr>
+				<td><t>messages/form_dst_app_name</t></td>
+				<td><select name="dst_app_id" id="messagesFormDstAppId"><option value="0"><t>messages/auto</t></option></select></td>
+			</tr>
+			<tr>
+				<td><t>messages/form_dst_addr</t></td>
+				<td><input type="text" name="dst_addr" /></td>
+			</tr>
+			<tr>
+				<td><t>messages/form_msg_body</t></td>
+				<td><textarea name="msg_body"></textarea></td>
+			</tr>
+		</table>
+	</form>
+</div>

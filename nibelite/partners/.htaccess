@@ -1,0 +1,15 @@
+<Files mekaniku.php>
+AuthType Basic
+AuthName "Mekaniku stats"
+AuthUserFile "/opt/nibelite/config/.partners"
+#require group billing tech content support
+#require group billing
+require valid-user
+
+SetEnv NIBELITE_HOME /opt/nibelite
+
+</Files>
+#<Files ~ "\.(gif|ico|png)$">
+#       AuthType none
+#</Files>
+

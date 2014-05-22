@@ -1,0 +1,89 @@
+#translate cms_head_routing SMS routing rules
+
+#TEMPLATE routing_table
+#
+#  %rows
+#
+<h1>SMS routing rules</h1>
+<p>Here you can manage routing rules for SMS based services.
+</p>
+
+<script language="JavaScript" type="application/x-javascript">
+function setSubmitDelete(what){
+  if(document.getElementById){
+    elDo = document.getElementById('do'+what);
+    elSubmit = document.getElementById('submit'+what);
+    if(elDo){
+      if(elDo.value == 'routing-update'){
+        elDo.value = 'routing-delete';
+        if(elSubmit)
+          elSubmit.value = 'Remove?!';
+      }else{
+        elDo.value = 'routing-update';
+        if(elSubmit)
+          elSubmit.value = 'Save';
+      }
+    }
+  }
+}
+</script>
+<a href="#add">Click here to add routing entry.</a>
+<table class=content width=100%>
+<tr>
+	<th>ID</th><th>Channel</th>
+	<th>From</th><th>To</th><th>Message body(PCRE)</th>
+	<th>Priority</th><th>Handler</th><th>Description</th><th>Fn</th>
+</tr>
+%rows
+<tr><th colspan=9><a name="add"/>Add new rule:</th></tr>
+<form name="insertrouting" method="get" action="%script">
+<input type="hidden" name="do" value="routing-insert">
+<tr>
+  <td>&nbsp;</td>
+  <td>%[src_app_id]</td>
+  <td><input type="text" size=10 name="src_addr_regexp" value=""></td>
+  <td><input type="text" size=10 name="dst_addr_regexp" value=""></td>
+  <td><input type="text" size=20 name="body_regexp" value=""></td>
+  <td><input type="text" size=5 name="priority" value=""></td>
+  <td>%[dst_app_id]</td>
+  <td><input type="text" size=20 name="description" value=""></td>
+  <td><input type="submit" value="Add"></td>
+</tr>
+</form>
+</table>
+
+#TEMPLATE routing_empty
+#
+#  %script
+#
+<tr><td colspan=4>No routing rules defined. <a href="%script?do=routing-add">Click here to add routing record.</a></td></tr>
+
+#TEMPLATE routing_row
+#
+#  %script, %id, %ext, %routing_type
+#
+<form name="editrouting%id" method="get" action="%script">
+<input id="do%id" type="hidden" name="do" value="routing-update">
+<tr>
+  <td><input type="text" size=3 readonly="yes" name="id" value="%id"></td>
+  <td>%[src_app_id]</td>
+  <td><input type="text" size=10 name="src_addr_regexp" value="%src_addr_regexp"></td>
+  <td><input type="text" size=10 name="dst_addr_regexp" value="%dst_addr_regexp"></td>
+  <td><input type="text" size=20 name="body_regexp" value="%body_regexp"></td>
+  <td><input type="text" size=5 name="priority" value="%priority"></td>
+  <td>%[dst_app_id]</td>
+  <td><input type="text" size=20 name="description" value="%description"></td>
+	<td><input id="submit%id" type="submit" value="Save">[<a href="javascript:void(0);" onclick="return setSubmitDelete('%id');" style="color:red;font-weight:bold">x</a>]</td>
+</tr>
+</form>
+
+#TEMPLATE routing_edit
+#
+#  %script
+#  %id
+#  %class
+#  %descr
+#  %do
+#
+<center>No individual record editing in this module.</center>
+<br>

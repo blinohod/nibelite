@@ -1,0 +1,126 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use 5.8.0;
+
+use lib '/opt/nibelite/lib/perl';
+
+NibeliteI18N->run();
+
+1;
+
+package NibeliteI18N;
+
+use Nibelite::SQL;
+use base 'Nibelite::App::CLI';
+
+sub action_help {
+	my ( $this, %params ) = @_;
+	my $context = 'usage';
+	if ( defined( $params{__non_options__} ) && scalar( @{ $params{__non_options__} } ) ) {
+		$context = $params{__non_options__}->[0];
+	}
+	my $ctxmap = {
+		'usage'   => "Usage:\n\n\t$0 [command] [parameters...] [--option=value] [--option=value] ...\n\n" . "where command is one of\n" . "\thelp\tThis message\n" . "\tcollect\tCollect messages for translation\n" . "\timport\tImport messages\n\n" . "For parameters and options, use\n\n" . "\t$0 help command\n\n" . "where command is the command you need help with.\n",
+		'import'  => "import - import messages\n\nUsage: $0 import str-file\n\n",
+		'collect' => "collect - collect messages from source file, fill initial values from database.\n\nUsage: $0 collect --append=str-file [--language=XX] source-file\n\n",
+	};
+	if ( $ctxmap->{$context} ) {
+		print STDOUT $ctxmap->{$context};
+	} else {
+		print STDOUT "Sorry, there is no help for this topic ($context).\n";
+	}
+}
+
+sub action_unknown {
+	return action_help(@_);
+}
+
+sub action_collect {
+	my ( $this, %params ) = @_;
+	my $language = $params{language} || $this->conf->{default_lang};
+	my $append = $params{append};
+	unless ($append) {
+		$this->speak("Specify an output file with --append");
+		$this->exitcode(1);
+		return undef;
+	}
+	open my $fh, ">> $append";
+	my $res   = {};
+	my $input = $params{__non_options__}[0];
+	open my $fi, "< $input";
+	unless ($fi) {
+		$this->speak("Specify an input file");
+		$this->exitcode(1);
+		return undef;
+	}
+	while (<$fi>) {
+		while ( m#\<t\>([a-z0-9_/-]+)\</t\>#i || m#\bt\(['"]([a-z0-9_/-]+)['"]\)#i ) {
+			my $x = $1;
+			$res->{$x} = 1 if $x;
+			s/$x//;
+		}
+	}
+	foreach my $key ( sort( keys(%$res) ) ) {
+		my ( $service, $tag ) = split /\//, $key;
+		my $translation = "";
+		my $r           = $this->dbh->fetch_call(
+			"SELECT value FROM core.translations WHERE lang = ? AND service = ? AND keyword = ?",
+			$language, $service, $tag
+		);
+		if ( $r && scalar(@$r) ) {
+			$translation = $r->[0]->{value};
+		}
+		$translation =~ s/\"/\"\"/g;
+		$translation =~ s/\n/\\n/g;
+		$translation =~ s/\r/\\r/g;
+		$translation =~ s/\t/\\t/g;
+		print $fh sprintf( "\"%s\";\"%s\";\"%s\";\"%s\"\n", $language, $service, $tag, $translation );
+	}
+
+} ## end sub action_collect
+
+sub action_import {
+	my ( $this, %params ) = @_;
+	my $input = $params{__non_options__}[0];
+	open my $fi, "< $input";
+	unless ($fi) {
+		$this->speak("Specify an input file");
+		$this->exitcode(1);
+		return undef;
+	}
+	my $rows = 0;
+	my $i    = 0;
+	my $u    = 0;
+	while ( my $line = <$fi> ) {
+		chomp($line);
+		my @buf = ();
+		while ( ($line =~ s/^([^;"]++)(?:;|$)//) || ($line =~ s/^".*?"(?:;|$)//) ) {
+			my $element = $1;
+			$element = "" unless defined($element);
+			$element =~ s/""/"/g;
+			$element =~ s/\\r/\r/g;
+			$element =~ s/\\n/\n/g;
+			$element =~ s/\\t/\t/g;
+			push @buf, $element;
+		}
+		my $q = "UPDATE core.translations SET value = ? WHERE lang = ? AND service = ? AND keyword = ?";
+		my $r = $this->dbh->call( $q, $buf[3], $buf[0], $buf[1], $buf[2] );
+		unless ( $r->rows ) {
+			$q = "INSERT INTO core.translations (lang, service, keyword, value) VALUES (?, ?, ?, ?) RETURNING id";
+			$r = $this->dbh->fetch_call( $q, @buf );
+			unless ($r) {
+				$this->speak("Cannot insert translation.");
+			} else {
+				$i++;
+			}
+		} else {
+			$u++;
+		}
+		$rows++;
+	} ## end while ( my $line = <$fi> )
+	$this->speak( sprintf( "%d rows inserted, %d rows updated, of %d total.", $i, $u, $rows ) );
+} ## end sub action_import
+
+1;

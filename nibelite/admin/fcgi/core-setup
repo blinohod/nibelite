@@ -1,0 +1,24 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+SubmenuAdmin->run(
+	conf_file         => '/opt/nibelite/etc/admin/core-setup.conf',
+);
+
+package SubmenuAdmin;
+
+use lib '/opt/nibelite/lib/perl';
+use base 'Nibelite::App::GUI';
+
+sub action_info {
+	my ( $this, $data, %params ) = @_;
+	return {
+		title => $this->conf->{title},
+		menu => $this->conf->{menu},
+		default => $this->conf->{default}
+	};
+}
+
+1;

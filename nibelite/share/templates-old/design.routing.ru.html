@@ -1,0 +1,109 @@
+#translate cms_head_routing Правила маршрутизации SMS
+
+#TEMPLATE routing_table
+#
+#  %rows
+#
+<h1>Правила маршрутизации SMS</h1>
+<p>В этом интерфейсе вы можете настроить правила машрутизации сообщений SMS.</p>
+
+<p>Правила обрабатываются в порядке приоритета (чем меньше, тем раньше будет проверено).
+Сработает первое (с минимальным значением приоритета) правило, под которое попадает новое сообщение.</p>
+
+<p><b>Внимание!</b><br>
+Поля "Откуда", "Куда" и "Текст" обрабатываются следующим образом.</p>
+<ul>
+	<li>Если поле пустое, то оно игнорируется.</li>
+	<li>В противном случае обрабатывается, как регулярное выражение (регистронезависимое).</li>
+</ul>
+
+<script language="JavaScript" type="application/x-javascript">
+function setSubmitDelete(what){
+  if(document.getElementById){
+    elDo = document.getElementById('do'+what);
+    elSubmit = document.getElementById('submit'+what);
+    if(elDo){
+      if(elDo.value == 'routing-update'){
+        elDo.value = 'routing-delete';
+        if(elSubmit)
+          elSubmit.value = 'Удалить?!';
+      }else{
+        elDo.value = 'routing-update';
+        if(elSubmit)
+          elSubmit.value = 'Сохранить';
+      }
+    }
+  }
+}
+</script>
+
+<style type="text/css">
+	table#routing-table input{
+		font-size: 10px;
+	}
+	table#routing-table select{
+		font-size: 9px;
+		max-width: 200px;
+	}
+</style>
+
+<a href="#add">Нажмите здесь, чтобы добавить правило.</a>
+<table class=content width=100% id="routing-table">
+<tr><th colspan=9><a name="add"/>Добавить правило:</th></tr>
+<form name="insertrouting" method="get" action="%script">
+<input type="hidden" name="do" value="routing-insert">
+<tr>
+  <td>&nbsp;</td>
+  <td>%[src_app_id]</td>
+  <td><input type="text" size=8 name="src_addr_regexp" value=""></td>
+  <td><input type="text" size=8 name="dst_addr_regexp" value=""></td>
+  <td><input type="text" size=10 name="body_regexp" value=""></td>
+  <td><input type="text" size=5 name="priority" value=""></td>
+  <td>%[dst_app_id]</td>
+  <td><input type="text" size=20 name="description" value=""></td>
+  <td><input type="submit" value="Добавить"></td>
+</tr>
+</form>
+<tr>
+	<th>ID</th><th>Канал</th>
+	<th>Откуда</th><th>Куда</th><th>Текст (PCRE)</th>
+	<th>Приоритет</th><th>Обработчик</th><th>Описание</th><th>Действие</th>
+</tr>
+%rows
+</table>
+
+#TEMPLATE routing_empty
+#
+#  %script
+#
+<tr><td colspan=4>Правила не определены.</td></tr>
+
+#TEMPLATE routing_row
+#
+#  %script, %id, %ext, %routing_type
+#
+<form name="editrouting%id" method="get" action="%script">
+<input id="do%id" type="hidden" name="do" value="routing-update">
+<tr>
+  <td><input type="text" size=3 readonly="yes" name="id" value="%id"></td>
+  <td>%[src_app_id]</td>
+  <td><input type="text" size=8 name="src_addr_regexp" value="%src_addr_regexp"></td>
+  <td><input type="text" size=8 name="dst_addr_regexp" value="%dst_addr_regexp"></td>
+  <td><input type="text" size=10 name="body_regexp" value="%body_regexp"></td>
+  <td><input type="text" size=5 name="priority" value="%priority"></td>
+  <td>%[dst_app_id]</td>
+  <td><input type="text" size=20 name="description" value="%description"></td>
+	<td><input id="submit%id" type="submit" value="Сохранить">[<a href="javascript:void(0);" onclick="return setSubmitDelete('%id');" style="color:red;font-weight:bold">x</a>]</td>
+</tr>
+</form>
+
+#TEMPLATE routing_edit
+#
+#  %script
+#  %id
+#  %class
+#  %descr
+#  %do
+#
+<center>Некорректное обращение к интерфейсу.</center>
+<br>

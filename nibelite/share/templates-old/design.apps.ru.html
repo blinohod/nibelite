@@ -1,0 +1,90 @@
+#TEMPLATE apps_table
+#
+#  %rows
+#
+<h1>Настройка компонент</h1>
+<p>С помощью данного интерфейса можно производить настройку компонент платформы.</p>
+
+<a href="%script?do=apps-add">Нажмите, чтобы добавить компоненту.</a>
+<table class=content width=100%><tr><th>ID</th><th>Название</th><th>Описание</th></tr>
+%rows
+</table>
+
+#TEMPLATE apps_empty
+#
+#  %script
+#
+<tr><td colspan=3>Компоненты не созданы. <a href="%script?do=apps-add">Нажмите, чтобы добавить компоненту.</a></td></tr>
+
+
+#TEMPLATE apps_row
+#
+#  %script, %id, %name, %active
+#
+<tr><td>%id&bull;[<a href="%script?do=apps-delete&id=%id" style="color:red" onclick="return confirm('Вы уверены, что хотите удалить компоненту?');">x</a>]</td>
+    <td><a href="%script?do=apps-edit&id=%id"><b>%name</b></a></td>
+		<td>%descr</td>
+</tr>
+
+#TEMPLATE apps_edit
+#
+#  %script
+#  %id
+#  %name
+#  %active
+#  %config
+#  %do
+#
+<center><table class=content width="50%">
+<form method=post name="editconf" action="%script">
+<tr><th>ID</th><th>Название</th><th>Активна</th></tr>
+<tr>
+	<td><input type=text size=5 maxlength=5 name="id" value="%id"%dis></td>
+	<td><input type=text size=30 maxlength=128 name="name" value="%name"></td>
+	<td><input type=hidden size=1 maxlength=1 name="active" value="1">ON</td>
+</tr>
+<tr>
+	<td>&nbsp;</td><td colspan=2 align="right">
+		Описание:<br/>
+		<textarea name=descr cols=30 rows=5>%descr</textarea>
+	</td>
+</tr>
+<tr>
+	<td>&nbsp;</td><td colspan=2 align="right">
+		<input type=submit value="  Сохранить  ">
+		<input type=checkbox name="copy" value=1>скопировать компоненту</td>
+</tr>
+%config
+<input type=hidden name=do value="%do">
+</form>
+</table></center>
+<br>
+
+
+#TEMPLATE apps_editconf
+<tr><th colspan=3>Добавить новый параметр</th></tr>
+<tr>
+<input type=hidden name="changed[0]" value="0">
+<td><input type=text size=10 maxlength=32 name="key[0]" value=""
+onchange="document.editconf.elements['changed[0]'].value=1"></td>
+<td colspan=2><input type=text size=50 name="value[0]" value=""
+onchange="document.editconf.elements['changed[0]'].value=1"></td>
+</tr>
+<tr><th>Параметр</th><th colspan=2>Значение</th></tr>
+%rows
+<tr><td>&nbsp;</td><td colspan=2 align="right"><input type=submit value="  Сохнанить  "></td></tr>
+
+#TEMPLATE apps_confrow
+<tr>
+<input type=hidden name="changed[%i]" value="0">
+<td><input type=text size=10 maxlength=32 name="key[%i]" value="%key"
+onchange="document.editconf.elements['changed[%i]'].value=1"></td>
+<td colspan=2><input type=text size=50 name="value[%i]" value="%value"
+onchange="document.editconf.elements['changed[%i]'].value=1"><br>%descr</td>
+</tr>
+
+#TEMPLATE apps_nodescr
+<a href="%script?do=trans-list&keyword=ac_%key" target="translate">добавить описание тега</a>
+
+#TEMPLATE apps_descr
+%descr <a href="%script?do=trans-list&keyword=ac_%key" target="translate">.</a>

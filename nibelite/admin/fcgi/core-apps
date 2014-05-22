@@ -1,0 +1,22 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+Apps->run(
+	table             => 'core.apps',
+	selectable_fields => [ 'id', 'name', 'descr', 'active' ],
+	updatable_fields => [ 'name', 'descr', 'active' ],
+	sortable_fields  => [ 'id',   'name',  'active' ],
+	sort_rules       => {
+		'name:asc'  => [ [ 'name', 'asc' ],  [ 'active', 'desc' ] ],
+		'name:desc' => [ [ 'name', 'desc' ], [ 'active', 'desc' ] ],
+	  }
+);
+
+package Apps;
+
+use lib '/opt/nibelite/lib/perl';
+use base 'Nibelite::App::CRUD';
+
+1;

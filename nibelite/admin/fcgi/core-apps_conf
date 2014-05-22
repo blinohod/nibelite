@@ -1,0 +1,38 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+AppsConf->run(
+	table             => 'core.apps_conf',
+	selectable_fields => [ 'id', 'app_id', 'tag', 'value', 'app_name' ],
+	updatable_fields => [ 'app_id', 'tag',      'value' ],
+	returning_fields => [ 'id',     'app_id',   'tag', 'value' ],
+	sortable_fields  => [ 'app_id', 'app_name', 'tag', 'value' ],
+	filters => {
+		app_id => sub {
+			my ( $this, $value, $statement ) = @_;
+			$statement->where( ["app_id = :app_id"] );
+			$statement->params( { app_id => $value } );
+			return $statement;
+		  }
+	}
+);
+
+package AppsConf;
+
+use lib '/opt/nibelite/lib/perl';
+use base 'Nibelite::App::CRUD';
+
+sub list_base_query {
+	my ($this) = @_;
+	my $query = $this->SUPER::list_base_query();
+	$query->joins( [ 'JOIN core.apps ca ON (ca.id = core.apps_conf.app_id)' ] );
+	$query->fields(
+		{
+			app_name => 'ca.name',
+		}
+	);
+}
+
+1;

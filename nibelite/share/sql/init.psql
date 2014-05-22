@@ -1,0 +1,67 @@
+BEGIN TRANSACTION;
+
+\i core/create-schema.sql
+
+\i core/table-core.schema_info.sql
+
+\i core/table-core.mno.sql
+\i core/table-core.mno_prefixes.sql
+\i core/function-core.get_mno_name.sql
+
+\i core/table-core.apps.sql
+\i core/table-core.apps_conf.sql
+\i core/table-core.translations.sql
+ 
+\i core/function-core.get_app_id.sql
+\i core/function-core.get_active_channels.sql
+
+\i core/type-t_msg_status.sql
+\i core/type-t_msg_type.sql
+
+\i core/table-core.routing.sql
+\i core/function-core.get_message_route.sql
+\i core/function-core.route_message.sql
+
+\i core/table-core.messages.sql
+\i core/table-core._messages_queue.sql
+\i core/table-core._messages_archive.sql
+
+\i core/rules-core.messages.sql
+\i core/rules-core._messages_queue.sql
+
+\i core/function-core.make_session_id.sql
+
+\i core/table-core.users.sql
+\i core/table-core.groups.sql
+\i core/table-core.users_groups.sql
+\i core/table-core.sessions.sql
+
+\i core/table-core.services.sql
+\i core/table-core.actions.sql
+\i core/table-core.rights.sql
+
+\i core/function-core.auth_passwd.sql
+\i core/function-core.authorize.sql
+\i core/function-core.check_rights.sql
+\i core/function-core.clear_sessions.sql
+\i core/function-core.create_session.sql
+\i core/function-core.delete_user_sessions.sql
+\i core/function-core.update_session.sql
+\i core/function-core.auth_session.sql
+\i core/function-core.delete_session.sql
+
+\i core/data-translations-core.sql
+\i core/data-translations-global.sql
+
+\i core/data-initial-apps.sql
+
+\i core/data-translations-ru-core-legacy.sql
+\i core/data-translations-ru-core.sql
+\i core/data-translations-ru-core-setup.sql
+\i core/data-translations-ru-users.sql
+\i core/data-translations-ru-messages.sql
+\i core/data-translations-ru-i18n.sql
+\i core/data-translations-ru-menu.sql
+
+COMMIT;
+
