@@ -1,0 +1,162 @@
+#TRANSLATE tvchat_title SMS-ТВ Чат
+#TEMPLATE page
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<link rel="stylesheet" type="text/css" href="tvchat.css" media="all" />
+
+	<script type="text/javascript" src="/jquery/jquery.js"></script>
+	<script type="text/javascript" src="/jquery-ui/jquery-ui.js"></script>
+
+	<title>Nibelite / SMS-TV Chat</title>
+	<!-- link rel="SHORTCUT ICON" href="favicon.ico" -->
+
+<!-- Content reloader -->
+<script type="text/javascript"><!--
+
+var nl_reload_delay = 0;
+
+function nl_set_delay(dl) {
+       nl_reload_delay = dl;
+
+       if (nl_reload_delay >= 1) {
+               reload_content();
+       };
+
+};
+
+function reload_content() {
+
+      //alert(window.location + ' : ' + nl_reload_delay);
+      $('#content').load(window.location + ' #content');
+
+		  if (nl_reload_delay >= 1) {
+       	setTimeout(reload_content, nl_reload_delay*1000 );
+			}
+};
+
+//--></script>
+
+</head>
+<body>
+	<div id="wrapper">
+		<!-- div id="header">
+			<h1>%page_title</h1>
+		</div -->
+
+		<div id="content-wrapper">
+			<div id="content">
+				<h1>Nibelite / SMS-TV Chat</h1>
+				%page_menu
+				%page_main
+			</div>
+		</div>
+
+		<div id="footer">
+			<p><span>
+				&copy; 2007-2012 <a href="#" title="Net Style Ltd.">Net Style Ltd.</a>
+			</span></p>
+		</div>
+	</div>
+</body>
+</html>
+<!-- ********************************************************************************* -->
+
+#TEMPLATE menu
+<p style="float:right;text-align:right;width:auto;">
+<b>Data autoreload:</b>
+[<a href="#" onClick="nl_set_delay(0);">none</a>]
+[<a href="#" onClick="nl_set_delay(10);">10 sec</a>]
+[<a href="#" onClick="nl_set_delay(30);">30 sec</a>]
+[<a href="#" onClick="nl_set_delay(60);">1 min</a>]
+[<a href="#" onClick="nl_set_delay(300);">5 min</a>]
+<br>
+<b>Language:</b> 
+[<a href="%SELF?lang=en">english</a> |
+<a href="%SELF?lang=ru">русский</a>]<br>
+<b>Access:</b> [<a href="%SELF?do=logout">logout</a>]
+</p>
+
+	<h4 style="width:auto;">Available chatrooms</h3>
+	<table border="0" cellpadding="0" cellspacing="2" width="100%">
+		%list
+	</table>
+	<p>&nbsp;</p>
+<!--	<script type="text/javascript">
+		setTimeout('location.reload(true)',10000);
+</script>-->
+
+#TEMPLATE menu_chat
+<tr>
+	<td align="right"><small><a href="%SELF?do=chat&amp;id=%id&amp;m=%limit">%sn</a></small></td>
+	<td><small><a href="%SELF?do=chat&amp;id=%id&amp;m=%limit">%name</a></small></td>
+	<td align="right"><small>Messages:&nbsp;<b>%num_msg</b></small></td>
+	<td><small>[<a href="rss.php?do=chat&amp;l=%login&amp;p=%pass&amp;id=%id&amp;xml=1&amp;m=200">XML/RSS</a>]</small></td>
+</tr>
+#TEMPLATE chat_nav
+<table border="0" width="100%" cellpadding="4">
+	<tr>
+		<td><small>Messages: %start-%end of %total</small></td>
+		<td align="right"><small>%links</small></td>
+	</tr>
+</table>
+
+#TEMPLATE chat_prev_link
+<a href="%SELF?do=chat&amp;id=%id&amp;m=%limit&amp;s=%start">&laquo;&nbsp;Previous&nbsp;%limit</a>
+
+#TEMPLATE chat_next_link
+<a href="%SELF?do=chat&amp;id=%id&amp;m=%limit&amp;s=%start">Next&nbsp;%limit&nbsp;&raquo;</a>
+
+#TEMPLATE chat_empty
+<h3>Chatroom &laquo;%name&raquo; (short code %sn)</h3>
+<p>No messages here.</p>
+
+#TEMPLATE chat_list
+<h3>Chatroom &laquo;%name&raquo; (short code %sn)</h3>
+%chat_nav
+<table class="content" width="100%">
+	<tr><th>Date/time</th><th>Subscriber</th><th>Status</th><th width="70%">Message</th></tr>
+	%messages
+</table>
+%chat_nav
+
+#TEMPLATE chat_list_item
+<tr style="border-bottom: solid 1px"><td><small>%time_full</small></td><td><small>%msisdn</small></td><td><small>%status</small></td><td class="message %class">%body</td></tr>
+
+#TEMPLATE chat_list_xml
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+	<title>%name</title>
+	<description>SMS TV Chat %name on %sn</description>
+	<link>http://localhost/</link>
+	<ttl>600</ttl>
+		%messages
+</channel>
+</rss>
+
+#TEMPLATE chat_list_item_xml
+<item>
+	<title>%msisdn</title>
+	<description>%body</description>
+	<link></link>
+	<guid>%id</guid>
+	<pubDate>%time_full</pubDate>
+</item>
+
+#TEMPLATE login_error
+<p style="color:red;">Error entering system! Please check login and password.</p>
+
+#TEMPLATE login
+<h2>Partner interface authentication</h2>
+%login_msg
+<blockquote>
+	<form method="post" action="%SELF" name="login" style="text-align:center;">
+		<p>
+			Login: <input type="text" size="10" name="l" value='' />
+			Password: <input type="password" size="10" name="p" value='' />
+			<input type="submit" name="ok" value="Enter system" />
+		</p>
+	</form>
+</blockquote>

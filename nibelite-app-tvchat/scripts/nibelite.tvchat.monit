@@ -1,0 +1,4 @@
+check process nibelite.tvchat
+        with pidfile /var/run/NetSDS/nibelite.tvchat.pid
+        start program = "/sbin/service nibelite.tvchat start"
+        stop  program = "/sbin/service nibelite.tvchat stop" with timeout 30 seconds

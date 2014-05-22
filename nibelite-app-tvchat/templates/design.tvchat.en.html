@@ -1,0 +1,664 @@
+#TRANSLATE tvchat_title SMS TV chat
+#TRANSLATE tvchat_head TV chat management
+
+#TEMPLATE tvchat_menu
+<a href="%SELF?do=tvchat-messages">Manage messages</a>
+- <a href="%SELF?do=tvchat-banlist">Ban list</a>
+- <a href="%SELF?do=tvchat-setup">Manage chats</a>
+<!-- - <a href="%SELF?do=tvchat-stat">Statistics</a> -->
+
+#TEMPLATE tvcc_manage
+<style type="text/css">
+
+	img.ic { border: none; vertical-align: middle; }
+	
+	div#Worksheet {
+		padding: 0.5em;
+		margin: 0;
+		background-color: #fff;
+		border: 2px solid #ccc;
+	}
+	
+	div#Worksheet h3 {
+		text-align: center;
+	}
+
+	.mob {
+		padding-left: 16px;
+		background-image: url(/img/phone.png);
+		background-repeat: no-repeat;
+	}
+	
+	.inav {
+		margin: 0;
+		padding: 0.25em;
+		text-align: right;
+	}
+	
+	.btn {
+		padding: 2px 0.5em;
+		background-color: #ccf;
+	}
+
+</style>
+<script type="text/javascript">
+
+	$(document).ready(function() {	
+		showChats();
+	});
+
+	var Page = 0;
+
+	function showChats () {
+		$('#Worksheet').fadeOut('fast',function () {
+			$.post('%SELF', {
+				'do' : 'tvchat-chats',
+				'page' : Page
+			}, function(data) {
+				$('#Worksheet').html(data);
+				$('#Worksheet').fadeIn('fast');
+			});
+		});
+		return false;
+	}
+	
+	function pageNext () {
+		Page++;
+		showChats();
+		return false;
+	}
+	
+	function pageBack () {
+		if (Page > 0) {
+			Page--;
+			showChats();
+		}
+		return false;
+	}
+	
+	function chatNewShow () {
+		$('#chatNew').fadeOut('fast',function () {
+			$('#chatNew').fadeIn('fast',function () {
+				$('#chatNewName').focus();
+			});
+		});
+		return false;
+	}
+	
+	function chatNewCancel () {
+		$('#chatNew').fadeOut('fast');
+		return false;
+	}
+	
+	function chatNewInsert() {
+		$('#chatNew').fadeOut('fast',function () {
+			$.post('%SELF', $('#chatNew').serialize(), function(data) {
+				showChats();
+			});
+		});
+		return false;
+	}
+	
+	function chatEdit( chat_id ) {
+		$('#chatNoEdit'+chat_id).fadeOut('fast',function () {
+			$('#chatEdit'+chat_id).fadeIn('fast',function () {
+				$('#chatEditName'+chat_id).focus();
+			});
+		});
+		return false;
+	}
+
+	function chatEditCancel( chat_id ) {
+		$('#chatEdit'+chat_id).fadeOut('fast',function () {
+			$('#chatNoEdit'+chat_id).fadeIn('fast');
+		});
+		return false;
+	}
+	
+	function chatEditUpdate( chat_id ) {
+		$('#chatEdit'+chat_id).fadeOut('fast',function () {
+			$.post('%SELF', $('#chatEdit'+chat_id).serialize(), function(data) {
+				showChats();
+			});
+		});
+	}
+
+	function chatClone( chat_id ) {
+		$('#chatClone'+chat_id).fadeIn('fast',function () {
+			$('#chatClonePattern'+chat_id).focus();
+		});
+		return false;
+	}
+
+	function chatCloneCancel( chat_id ) {
+		$('#chatClone'+chat_id).fadeOut('fast');
+		return false;
+	}
+	
+	function chatCloneGo( chat_id ) {
+		$('#chatClone'+chat_id).fadeOut('fast',function () {
+			$.post('%SELF', $('#chatClone'+chat_id).serialize(), function(data) {
+				showChats();
+			});
+		});
+	}
+
+
+	function chatDelete( chat_id ) {
+		if (confirm("Do you really want to delete Chat \""+$('#chatName'+chat_id).text()+"\"?")) {
+			$.post('%SELF', {
+				'do' : 'tvchat-chat-delete',
+				'id' : chat_id
+			}, function(data) {
+				showChats();
+			});
+		}
+		return false;
+	}
+	
+	function chatStatus( chat_id, active ) {
+		$.post('%SELF', {
+			'do' : 'tvchat-chat-active',
+			'id' : chat_id,
+			'active' : active
+		}, function(data) {
+			$('#chatActive'+chat_id).html(data);
+		});
+	}
+</script>
+<div id="Worksheet">&nbsp;</div>
+#TEMPLATE tvcc_list
+<h3>Chats Management</h3>
+<p><small>Click on lamp icon to quick change status.</small></p>
+<p>[<a href="javascript:void(0)" onClick="chatNewShow()">Create New Chat</a>]</p>
+<form id="chatNew" name="chatNew" method="post" action="%SELF" style="padding:1em;display:none" onSubmit="{chatNewInsert();return false;}">
+	<center>
+		<input type="hidden" name="do" value="tvchat-chat-insert" />
+		<table class="content">
+			<tr>
+				<th>Short Code</th>
+				<th>Description</th>
+				<th>Partner Login</th>
+				<th>Password</th>
+			</tr>
+			<tr>
+				<td><input type="text" name="sn" size="10" value="" class="mob" /></td>
+				<td><input type="text" id="chatNewName" name="name" size="40" value="" /></td>
+				<td><input type="text" name="login" size="12" value="" /></td>
+				<td><input type="text" name="passwd" size="12" value="" /></td>
+			</tr>
+			<tr>
+				<td colspan="4" align="center">
+					<b>Pattern</b> to find SMS messages for this chat room.<br/>
+					<input type="text" name="pattern" size="12" value="" /><br/>
+					Leave blank if this is default chat room for the short code.<br/>
+					Type "^bird.*" without quotes if you want to match SMS beginning with "bird" here.
+				</td>
+			</tr>
+			<tr>
+				<th colspan="4">
+					SMS Reply Messages
+				</th>
+			</tr>
+			<tr>
+				<td>Default</td>
+				<td colspan="3">
+					<textarea cols="80" rows="2" name="reply_ok"></textarea>
+				</td>
+			</tr>
+			<tr>
+				<td>Help</td>
+				<td colspan="3">
+					<textarea cols="80" rows="2" name="reply_help"></textarea>
+				</td>
+			</tr>
+			<tr>
+				<td>Chat is closed</td>
+				<td colspan="3">
+					<textarea cols="80" rows="2" name="reply_closed"></textarea>
+				</td>
+			</tr>
+			<tr>
+				<th colspan="4">
+					<input type="button" name="ok" value="Save" onClick="chatNewInsert()" />
+					<input type="button" name="cancel" value="Cancel" onClick="chatNewCancel()" />
+				</th>
+			</tr>
+		</table>
+	</center>
+</form>
+<div class="inav">Chats %start-%end of %total %back %more</div>
+%list
+<div class="inav">Chats %start-%end of %total %back %more</div>
+
+#TEMPLATE tvcc_more
+| <a href="javascript:void(0)" onClick="pageNext()">More</a>
+#TEMPLATE tvcc_back
+| <a href="javascript:void(0)" onClick="pageBack()">Back</a>
+#TEMPLATE tvcc_empty
+<center>No Chats yet. Try to add one with link above.</center>
+#TEMPLATE tvcc_active
+<a href="javascript:void(0)" onClick="chatStatus('%id',0)" title="Status: ACTIVE. Click to set inactive."><img class="ic" src="/img/i-on.png" alt="Active" /></a>
+#TEMPLATE tvcc_inactive
+<a href="javascript:void(0)" onClick="chatStatus('%id',1)" title="Status: INACTIVE. Click to set active."><img class="ic" src="/img/i-off.png" alt="Inactive" /></a>
+#TEMPLATE tvcc_item
+<div class="chat" id="chat%id">
+%chat
+</div>
+#TEMPLATE tvcc_chat
+<table class="content" width="100%" id="chatNoEdit%id" %addstyle>
+	<tr>
+		<td width="5%">#%id</td>
+		<td width="5%" id="chatActive%id">%active</td>
+		<td width="5%"><img src="/img/phone.png" class="ic" alt="Short Code" /><b>%sn</b><br/><b>%patshow</b></td>
+		<td width="70%">[<a href="javascript:void(0)" onClick="chatEdit('%id')">edit</a>][<a href="javascript:void(0)" onClick="chatClone('%id')">clone</a>] <b id="chatName%id">%name</b><br/>
+		Default SMS reply: <i>%reply_ok</i><br/>
+		Help SMS reply: <i>%reply_help</i><br/>
+		Chat is closed reply: <i>%reply_closed</i><br/>
+		</td>
+		<td width="15%" style="text-align:center">%login / %passwd<br/><br/><b style="color:red;font-size:150%">%num_chat</b><br/>SMS Count</td>
+	</tr>
+</table>
+<form method="post" action="%SELF" id="chatClone%id" style="margin:0;padding:0;display:none" onSubmit="{chatCloneGo('%id');return false;}"><input type="hidden" name="do" value="tvchat-chat-clone" /><input type="hidden" name="id" value="%id" />
+	<table class="content" width="100%">
+		<tr>
+			<td>
+				<b>Clone Chat Room</b><br/>
+				To create a chat room under same SMS Number you have to enter the message pattern.
+				Any messages matching some pattern will go to corresponding room.<br/>
+				<i>Tip: if you want to match SMS beginning with "djfox", type "^djfox.*" without quotes as pattern. "^" means "begin with", "djfox" is our magic word and ".*" means "anything more".</i>
+			</td>
+			<td>
+				<b>Pattern:</b><br/>
+				<input id="chatClonePattern%id" type="text" name="pattern" value="" />
+			</td>
+			<td>
+				<input type="button" name="ok" value="Clone" onClick="chatCloneGo('%id')" />
+				<input type="button" name="cancel" value="Cancel" onClick="chatCloneCancel('%id')" />
+			</td>
+		</tr>
+	</table>
+</form>
+<form method="post" action="%SELF" id="chatEdit%id" style="margin:0;padding:0;display:none" onSubmit="{chatEditUpdate('%id');return false;}"><input type="hidden" name="do" value="tvchat-chat-update" /><input type="hidden" name="id" value="%id" />
+	<table class="content" width="100%">
+		<tr>
+			<td width="5%">#%id</td>
+			<td width="5%"><label><input type="checkbox" name="active" value="1" %actcheck /> Active</label></td>
+			<td width="10%">Short&nbsp;Code:<br/><input type="text" name="sn" size="10" value="%sn" class="mob" /><br/>Chat Room Pattern:<br><input type="text" name="pattern" size="10" value="%pattern" /><br/><small>leave pattern blank for default chat room</small></td>
+			<td width="50%">
+				Description:<br/><input type="text" name="name" size="40" value="%name" /><br/>
+				Default SMS reply:<br/><textarea cols="60" rows="2" name="reply_ok">%reply_ok</textarea><br/>
+				Help SMS reply:<br/><textarea cols="60" rows="2" name="reply_help">%reply_help</textarea><br/>
+				Chat is closed reply:<br/><textarea cols="60" rows="2" name="reply_closed">%reply_closed</textarea><br/>
+			</td>
+			<td width="25%">Login&nbsp;and&nbsp;pwd:<br/><input type="text" name="login" size="12" value="%login" /><input type="text" name="passwd" size="12" value="%passwd" /></td>
+		</tr>
+		
+		<tr>
+			<th colspan="5">
+				<input type="button" name="ok" value="Save" onClick="chatEditUpdate('%id')" />
+				<input type="button" name="cancel" value="Cancel" onClick="chatEditCancel('%id')" />
+				[<a href="javascript:void(0)" onClick="chatDelete('%id')" style="color:red">delete</a>]
+			</th>
+		</tr>
+	</table>
+</form>
+<br/>
+
+
+#TEMPLATE chat_manage
+<style type="text/css">
+
+	img.ic { border: none; vertical-align: middle; }
+	
+	div#Worksheet {
+		padding: 0.5em;
+		margin: 0;
+		background-color: #fff;
+		border: 2px solid #ccc;
+	}
+	
+	.inav {
+		margin: 0;
+		padding: 0.25em;
+		text-align: right;
+	}
+	
+	table.chat {
+		margin: 1em 0;
+		padding: 0;
+		border: none;
+		border-collapse: collapse;
+	}
+	
+	table.chat tr th {
+		background-color: #eee;
+		border-top: none;
+		border-right: none;
+		border-left: none;
+		border-bottom: 2px solid #999;
+		border-collapse: collapse;
+		margin: 0;
+		padding: 0.5em;
+		font-size: 8pt;
+	}
+	table.chat tr td {
+		border-top: none;
+		border-right: none;
+		border-left: none;
+		border-bottom: 1px solid #ccc;
+		border-collapse: collapse;
+		margin: 0;
+		padding: 0.25em;
+		font-size: 8pt;
+	}
+
+	.btn {
+		padding: 2px 0.5em;
+		background-color: #ccf;
+		border-right: 1px solid #669;
+		border-bottom: 1px solid #669;
+	}
+
+
+</style>
+<script type="text/javascript"><!--
+
+	$(document).ready(function() {	
+		showChat();
+	});
+
+	function showChat () {
+		$('#Worksheet').fadeOut('fast',function () {
+			$('#chatLastId').val(0);
+			$.post('%SELF', $('#chatShowForm').serialize(), function(data) {
+				$('#Worksheet').html(data);
+				$('#Worksheet').fadeIn('fast');
+				getNewMessages();
+			});
+		});
+		return false;
+	}
+	
+	function getNewMessages () {
+		var p = $('#chatPage').val();
+		if (p>0) { 
+			// Auto-refresh only at first page
+			return false;
+		}
+		$('#newMsg').html('Fetching new messages...');
+		var lastMsgId = $('.msgid:first');
+		if (lastMsgId) {
+			var lastId = lastMsgId.text();
+			$('#chatLastId').val(lastId);
+		}
+			
+		$.post('%SELF', $('#chatShowForm').serialize(), function(data) {
+			$('#chatLastId').val(0);
+			var block = $(data);
+			var ids = block.find('.msgid');
+			var num = ids.length;
+			if (num) {
+				
+				$('#newMsg').html(num + ' new messages');
+				
+				var filled = $('.msgid').length;
+				
+				// Remove extra messages from page
+				if (filled + num > 50) {
+					var reduce = filled + num - 50;
+					for (var i=0;i<reduce;i++) {
+						$('.msgrow:last').remove();
+					}
+				}
+				
+				// Insert new block at top
+				$('#chatHeader').after(block);
+				$('.chatTotal').hide(0);
+			} else {
+				$('#newMsg').html('&nbsp;');
+			}
+		});
+		
+		setTimeout(getNewMessages, 15000);
+	}
+	
+	function pageNext () {
+		var p = $('#chatPage').val();
+		$('#chatPage').val(p+1);
+		showChat();
+		return false;
+	}
+	
+	function pageBack () {
+		var p = $('#chatPage').val();
+		if (p > 0) {
+			$('#chatPage').val(p-1);
+			showChat();
+		}
+		return false;
+	}
+	
+	function chatApprove ( id ) {
+		$.post('%SELF', {
+			'do' : 'tvchat-message-status',
+			'id' : id,
+			'status' : 'APPROVED'
+		}, function(data) {
+			$('#msg'+id).replaceWith(data);
+		});
+		return false;
+	}
+	
+	function chatReject ( id ) {
+		$.post('%SELF', {
+			'do' : 'tvchat-message-status',
+			'id' : id,
+			'status' : 'REJECTED'
+		}, function(data) {
+			$('#msg'+id).replaceWith(data);
+		});
+		return false;
+	}
+	
+	function chatBan ( id, jail ) {
+		if (jail == '') return false;
+		var msisdn = $('#msisdn'+id).text();
+		var msg = $('#body'+id).text();
+		if (confirm('Ban user ['+msisdn+'] with message ['+msg+'] for 1 '+jail+'?')) {
+			$.post('%SELF', {
+				'do' : 'tvchat-message-ban',
+				'id' : id,
+				'jail' : jail
+			}, function(data) {
+				showChat();
+			});
+		} else {
+			$('#ban'+id).val('');
+		}
+		return false;
+	}
+		
+//--></script>
+<form method="post" action="%SELF" name="chatShowForm" id="chatShowForm" onSubmit="{showChat();return false;}">
+	<input type="hidden" name="page" id="chatPage" value="0" />
+	<input type="hidden" name="do" value="tvchat-chat-list" />
+	<input type="hidden" name="last_id" id="chatLastId" value="0" />
+	<center>
+		<table border="0">
+			<tr>
+				<td><select name="serv"><option value="ALL" selected="1">All chats</option>%serv_options</select></td>
+				<td><select name="status">
+					<option value="ALL" selected="1">All messages</option>
+					<option value="NEW">NEW messages only</option>
+					<option value="APPROVED">APPROVED messages only</option>
+					<option value="REJECTED">REJECTED messages only</option>
+				</select></td>
+				<td><input type="button" name="ok" value="Show" onClick="showChat()" /></td>
+			</tr>
+		</table>
+	</center>
+</form>
+<div id="Worksheet">&nbsp;</div>
+#TEMPLATE chat_list
+<div class="inav"><span class="chatTotal">Messages %start-%end of %total </span>%back %more</div>
+<div id="newMsg">&nbsp;</div>
+<table id="chatTable" class="chat" width="100%">
+<tr id="chatHeader">
+	<th>Status</th>
+	<th>Code</th>
+	<th>Phone</th>
+	<th>Received</th>
+	<th>Message</th>
+	<th>Approval</th>
+</tr>
+%list
+</table>
+<div class="inav"><span class="chatTotal">Messages %start-%end of %total </span>%back %more</div>
+#TEMPLATE chat_row
+<tr class="msgrow" id="msg%id">
+	<td style="color:%color"><span class="msgid" style="display:none">%id</span>%status</td>
+	<td>%sn</td>
+	<td id="msisdn%id">%msisdn</td>
+	<td>%received</td>
+	<td id="body%id">%body</td>
+	<td><i>%editor_info</i>%func</td>
+</tr>
+#TEMPLATE chat_row_func
+<a href="javascript:void(0);" onClick="chatApprove('%id');" class="btn">approve</a>&nbsp;<a href="javascript:void(0);" onClick="chatReject('%id');" class="btn">reject</a>&nbsp;<!-- Ban&nbsp;for&nbsp;<a href="javascript:void(0);" onClick="chatBan('%id','hour');" class="btn">1&nbsp;hour</a>&nbsp;<a href="javascript:void(0);" onClick="chatBan('%id','month');" class="btn">1&nbsp;month</a> --><select name="ban%id" id="ban%id" class="btn" onChange="chatBan('%id',$(this).val())"><option value="" selected="1">Ban for...</option><option value="hour">1 hour</option><option value="day">1 day</option><option value="month">1 month</option></select>
+
+#TEMPLATE chat_banpage
+<style type="text/css">
+
+	img.ic { border: none; vertical-align: middle; }
+	
+	div#Worksheet {
+		padding: 0.5em;
+		margin: 0;
+		background-color: #fff;
+		border: 2px solid #ccc;
+	}
+	
+	.inav {
+		margin: 0;
+		padding: 0.25em;
+		text-align: right;
+	}
+	
+	table.chat {
+		margin: 1em 0;
+		padding: 0;
+		border: none;
+		border-collapse: collapse;
+	}
+	
+	table.chat tr th {
+		background-color: #eee;
+		border-top: none;
+		border-right: none;
+		border-left: none;
+		border-bottom: 2px solid #999;
+		border-collapse: collapse;
+		margin: 0;
+		padding: 0.5em;
+		font-size: 8pt;
+	}
+	table.chat tr td {
+		border-top: none;
+		border-right: none;
+		border-left: none;
+		border-bottom: 1px solid #ccc;
+		border-collapse: collapse;
+		margin: 0;
+		padding: 0.25em;
+		font-size: 8pt;
+	}
+
+	.btn {
+		padding: 2px 0.5em;
+		background-color: #ccf;
+		border-right: 1px solid #669;
+		border-bottom: 1px solid #669;
+	}
+
+
+</style>
+<script type="text/javascript"><!--
+
+	$(document).ready(function() {	
+		showBans();
+	});
+
+	function showBans () {
+		$('#Worksheet').fadeOut('fast',function () {
+			$.post('%SELF', $('#banShowForm').serialize(), function(data) {
+				$('#Worksheet').html(data);
+				$('#Worksheet').fadeIn('fast');
+			});
+		});
+		return false;
+	}
+	
+	function pageNext () {
+		var p = $('#banPage').val();
+		$('#banPage').val(p+1);
+		showBans();
+		return false;
+	}
+	
+	function pageBack () {
+		var p = $('#banPage').val();
+		if (p > 0) {
+			$('#banPage').val(p-1);
+			showBans();
+		}
+		return false;
+	}
+	
+	function banClear ( id ) {
+		$.post('%SELF', {
+			'do' : 'tvchat-ban-clear',
+			'id' : id
+		}, function(data) {
+			showBans();
+		});
+		return false;
+	}
+		
+//--></script>
+<form method="post" action="%SELF" name="banShowForm" id="banShowForm" onSubmit="{showBans();return false;}">
+	<input type="hidden" name="page" id="banPage" value="0" />
+	<input type="hidden" name="do" value="tvchat-ban-list" />
+	<center>
+		<table border="0">
+			<tr>
+				<td><select name="serv"><option value="ALL" selected="1">All chats</option>%serv_options</select></td>
+				<td><input type="button" name="ok" value="Show" onClick="showBans()" /></td>
+			</tr>
+		</table>
+	</center>
+</form>
+<div id="Worksheet">&nbsp;</div>
+#TEMPLATE chat_banlist
+<div class="inav">Bans %start-%end of %total %back %more</div>
+<table id="banTable" class="chat" width="100%">
+<tr id="banHeader">
+	<th>Code</th>
+	<th>Phone</th>
+	<th>Banned</th>
+	<th>Till</th>
+	<th>Message</th>
+	<th>Unset</th>
+</tr>
+%list
+</table>
+<div class="inav">Bans %start-%end of %total %back %more</div>
+#TEMPLATE chat_banrow
+<tr style="%style">
+	<td>%sn</td>
+	<td>%msisdn</td>
+	<td>%since</td>
+	<td>%till</td>
+	<td>%note</td>
+	<td><a href="javascript:void(0);" onClick="banClear('%id');" class="btn">clear&nbsp;ban</a></td>
+</tr>

@@ -1,0 +1,159 @@
+#!/usr/bin/env perl 
+
+use 5.8.0;
+use strict;
+use warnings;
+
+use lib '/opt/nibelite/lib/perl';
+
+NetSDSApp->run(
+	daemon      => 1,
+	infinite    => 1,
+	has_conf    => 1,
+	use_pidfile => 1,
+	conf_file   => '/opt/nibelite/etc/apps/tvchat.conf',
+	verbose     => 0,
+	debug       => 0,
+);
+
+1;
+
+package NetSDSApp;
+
+use NetSDS::Util::String;
+
+use base 'Nibelite::App::Service';
+
+sub start {
+
+	my ($this) = @_;
+
+	$this->speak("Starting SMS tvchat service");
+}
+
+sub process {
+
+	my ($this) = @_;
+
+	$this->dbh->begin();
+
+	# Fetch messages from queue
+	if ( my @msgs = $this->fetch_messages( $this->app_id, 1 ) ) {
+
+		# Process each message with transport specific logic
+		foreach my $msg (@msgs) {
+
+			$this->speak( "Received: " . $msg->{msg_type} );
+			$this->mq->update_message( $msg->{id}, msg_status => 'PROCESSED' );
+
+			# Process SMS_RAW
+			if ( $msg->{msg_type} eq 'SMS_RAW' ) {
+
+				$this->log( 'warning', 'SMS_RAW message [id=' . $msg->{id} . '] retrieved instead of SMS_TEXT, converting.' );
+
+				$msg->{msg_type} = 'SMS_TEXT';
+				$msg->{msg_body} = $msg->{msg_body}->{text};
+			}
+
+			# Text MO SM retrieved.
+			if ( $msg->{msg_type} eq 'SMS_TEXT' ) {
+
+				# Get content response for voting
+				my $response = $this->get_content( $msg->{msg_body}, $msg->{src_addr}, $msg->{dst_addr}, $msg->{id} );
+
+				# Prepare reply message
+				my $rep = $this->mq->make_reply(
+					$msg,
+					msg_body => $response,
+					msg_type => 'SMS_TEXT',
+				);
+
+				$this->speak("Sent response: $response");
+
+				# Put reply to outgoing message queue
+				$this->mq->enqueue_message(%$rep);
+
+			} elsif ( $msg->{msg_type} eq 'DLR' ) {
+
+				$this->speak( "DLR Retrieved for MT SM: " . $msg->{msg_body} );
+
+			}
+
+		} ## end foreach my $msg (@msgs)
+
+		$this->dbh->commit();
+
+	} else {
+
+		$this->dbh->commit();
+
+		$this->speak("Empty MO queue for chat.");
+		sleep 1;
+
+	}
+
+	return 1;
+
+} ## end sub process
+
+sub get_content {
+
+	my ( $this, $request, $msisdn, $sn, $msg_id ) = @_;
+
+	# Cleanup SMS query string
+	$request = str_clean($request);
+
+	$this->speak("TV chat query: $request");
+
+	# Load data for SN / message match against pattern
+	# Note 'pattern desc' statement: default empty pattern is the last choice
+	# What if there are more then one empty pattern? Ok, 'id desc' will send
+	# message to newest default chat.
+
+	my ($service) = @{
+		$this->dbh->fetch_call(
+			"select id,reply_ok,reply_help,reply_closed,active
+			from tvchat.service
+			where  sn=? and ? ~* pattern
+			order by pattern desc, id desc
+			limit 1",
+			$sn, $request
+		)
+	  };
+
+	# No records for SN or no default pattern? Terrible!
+	return $this->app_conf->{'msg_error'} unless defined $service->{id};
+
+	# Filling chat defaults with real defaults if needed
+	$service->{reply_help}   = $this->app_conf->{'msg_help'}   if $service->{reply_help}   eq '';
+	$service->{reply_ok}     = $this->app_conf->{'msg_thanks'} if $service->{reply_ok}     eq '';
+	$service->{reply_closed} = $this->app_conf->{'msg_closed'} if $service->{reply_closed} eq '';
+	$service->{reply_banned} = $this->app_conf->{'msg_banned'} ? $this->app_conf->{'msg_banned'} : 'Sorry, your request to chat is banned';
+
+	# Process HELP request
+	if ( lc($request) eq 'help' ) {
+		return $service->{reply_help};
+	}
+
+	# Check if subscriber is banned
+	my ($ban) = @{ $this->dbh->fetch_call( "select id from tvchat.ban where msisdn = ? and till > now() limit 1", $msisdn ) };
+	if ($ban) {
+		$this->log( "info", "Request to TV Chat from banned susbscriber: $msisdn" );
+		return $service->{reply_banned};
+	}
+
+	# Add chat record anyway
+	$this->dbh->call(
+		"insert into tvchat.chat (msg_id, msisdn, sn, body, service_id) values (?, ?, ?, ?, ?)",
+		$msg_id, $msisdn, $sn, $request, $service->{id}
+	);
+
+	# Is chat service active?
+	return $service->{reply_closed} unless $service->{active};
+	# OK thanks
+	return $service->{reply_ok};
+
+} ## end sub get_content
+
+1;
+

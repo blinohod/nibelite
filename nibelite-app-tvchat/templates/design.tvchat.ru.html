@@ -1,0 +1,667 @@
+#TRANSLATE tvchat_title SMS ТВ чат
+#TRANSLATE tvchat_head Управление SMS-ТВ чатом
+
+#TEMPLATE tvchat_menu
+<a href="%SELF?do=tvchat-messages">Очередь запросов</a>
+- <a href="%SELF?do=tvchat-banlist">Черный список</a>
+- <a href="%SELF?do=tvchat-setup">Управление комнатами</a>
+<!-- - <a href="%SELF?do=tvchat-stat">Statistics</a> -->
+
+#TEMPLATE tvcc_manage
+<style type="text/css">
+
+	img.ic { border: none; vertical-align: middle; }
+	
+	div#Worksheet {
+		padding: 0.5em;
+		margin: 0;
+		background-color: #fff;
+		border: 2px solid #ccc;
+	}
+	
+	div#Worksheet h3 {
+		text-align: center;
+	}
+
+	.mob {
+		padding-left: 16px;
+		background-image: url('img/phone.png');
+		background-repeat: no-repeat;
+	}
+	
+	.inav {
+		margin: 0;
+		padding: 0.25em;
+		text-align: right;
+	}
+	
+	.btn {
+		padding: 2px 0.5em;
+		background-color: #ccf;
+	}
+
+</style>
+<script type="text/javascript">
+
+	$(document).ready(function() {	
+		showChats();
+	});
+
+	var Page = 0;
+
+	function showChats () {
+		$('#Worksheet').fadeOut('fast',function () {
+			$.post('%SELF', {
+				'do' : 'tvchat-chats',
+				'page' : Page
+			}, function(data) {
+				$('#Worksheet').html(data);
+				$('#Worksheet').fadeIn('fast');
+			});
+		});
+		return false;
+	}
+	
+	function pageNext () {
+		Page++;
+		showChats();
+		return false;
+	}
+	
+	function pageBack () {
+		if (Page > 0) {
+			Page--;
+			showChats();
+		}
+		return false;
+	}
+	
+	function chatNewShow () {
+		$('#chatNew').fadeOut('fast',function () {
+			$('#chatNew').fadeIn('fast',function () {
+				$('#chatNewName').focus();
+			});
+		});
+		return false;
+	}
+	
+	function chatNewCancel () {
+		$('#chatNew').fadeOut('fast');
+		return false;
+	}
+	
+	function chatNewInsert() {
+		$('#chatNew').fadeOut('fast',function () {
+			$.post('%SELF', $('#chatNew').serialize(), function(data) {
+				showChats();
+			});
+		});
+		return false;
+	}
+	
+	function chatEdit( chat_id ) {
+		$('#chatNoEdit'+chat_id).fadeOut('fast',function () {
+			$('#chatEdit'+chat_id).fadeIn('fast',function () {
+				$('#chatEditName'+chat_id).focus();
+			});
+		});
+		return false;
+	}
+
+	function chatEditCancel( chat_id ) {
+		$('#chatEdit'+chat_id).fadeOut('fast',function () {
+			$('#chatNoEdit'+chat_id).fadeIn('fast');
+		});
+		return false;
+	}
+	
+	function chatEditUpdate( chat_id ) {
+		$('#chatEdit'+chat_id).fadeOut('fast',function () {
+			$.post('%SELF', $('#chatEdit'+chat_id).serialize(), function(data) {
+				showChats();
+			});
+		});
+	}
+
+	function chatClone( chat_id ) {
+		$('#chatClone'+chat_id).fadeIn('fast',function () {
+			$('#chatClonePattern'+chat_id).focus();
+		});
+		return false;
+	}
+
+	function chatCloneCancel( chat_id ) {
+		$('#chatClone'+chat_id).fadeOut('fast');
+		return false;
+	}
+	
+	function chatCloneGo( chat_id ) {
+		$('#chatClone'+chat_id).fadeOut('fast',function () {
+			$.post('%SELF', $('#chatClone'+chat_id).serialize(), function(data) {
+				showChats();
+			});
+		});
+	}
+
+
+	function chatDelete( chat_id ) {
+		if (confirm("Вы точно хотите удалить комнату \""+$('#chatName'+chat_id).text()+"\"?")) {
+			$.post('%SELF', {
+				'do' : 'tvchat-chat-delete',
+				'id' : chat_id
+			}, function(data) {
+				showChats();
+			});
+		}
+		return false;
+	}
+	
+	function chatStatus( chat_id, active ) {
+		$.post('%SELF', {
+			'do' : 'tvchat-chat-active',
+			'id' : chat_id,
+			'active' : active
+		}, function(data) {
+			$('#chatActive'+chat_id).html(data);
+		});
+	}
+</script>
+<div id="Worksheet">&nbsp;</div>
+#TEMPLATE tvcc_list
+<h3>Управление комнатами</h3>
+<p><small>Нажмите на лампу, чтобы изменить статус.</small></p>
+<p>[<a href="javascript:void(0)" onClick="chatNewShow()">Создать новую комнату</a>]</p>
+<form id="chatNew" name="chatNew" method="post" action="%SELF" style="padding:1em;display:none" onSubmit="{chatNewInsert();return false;}">
+	<center>
+		<input type="hidden" name="do" value="tvchat-chat-insert" />
+		<table class="content">
+			<tr>
+				<th>Короткий номер</th>
+				<th>Описание</th>
+				<th>Логин партнера</th>
+				<th>Пароль</th>
+			</tr>
+			<tr>
+				<td><input type="text" name="sn" size="10" value="" class="mob" /></td>
+				<td><input type="text" id="chatNewName" name="name" size="40" value="" /></td>
+				<td><input type="text" name="login" size="12" value="" /></td>
+				<td><input type="text" name="passwd" size="12" value="" /></td>
+			</tr>
+			<tr>
+				<td colspan="4" align="center">
+					<b>Шаблон (PCRE)</b> чтобы фильтровать SMS для этой комнаты.<br/>
+					<input type="text" name="pattern" size="12" value="" /><br/>
+					Оставьте поле пустым для комнаты по умолчанию для этого короткого номера.<br/>
+					Введите "^sport.*" без кавычек, если хотите получать здесь все SMS, начинающиеся со "sport".
+				</td>
+			</tr>
+			<tr>
+				<th colspan="4">
+					Ответные сообщения SMS
+				</th>
+			</tr>
+			<tr>
+				<td>Ответ по умолчанию</td>
+				<td colspan="3">
+					<small>Будет отправляться абонентам в ответ на принятые к отработке сообщения.</small><br>
+					<textarea cols="80" rows="2" name="reply_ok"></textarea>
+				</td>
+			</tr>
+			<tr>
+				<td>Справка</td>
+				<td colspan="3">
+					<small>Будет отправляться абонентам в ответ на сообщение "HELP".</small><br>
+					<textarea cols="80" rows="2" name="reply_help"></textarea>
+				</td>
+			</tr>
+			<tr>
+				<td>Комната закрыта</td>
+				<td colspan="3">
+					<small>Будет отправляться абонентам в ответ на сообщение в выключенную комнату.</small><br>
+					<textarea cols="80" rows="2" name="reply_closed"></textarea>
+				</td>
+			</tr>
+			<tr>
+				<th colspan="4">
+					<input type="button" name="ok" value="Сохранить" onClick="chatNewInsert()" />
+					<input type="button" name="cancel" value="Отмена" onClick="chatNewCancel()" />
+				</th>
+			</tr>
+		</table>
+	</center>
+</form>
+<div class="inav">Комнаты: %start-%end из %total %back %more</div>
+%list
+<div class="inav">Комнаты: %start-%end из %total %back %more</div>
+
+#TEMPLATE tvcc_more
+| <a href="javascript:void(0)" onClick="pageNext()">Еще</a>
+#TEMPLATE tvcc_back
+| <a href="javascript:void(0)" onClick="pageBack()">Назад</a>
+#TEMPLATE tvcc_empty
+<center>Комнаты не созданы. Попробуйте добавить по ссылке ниже.</center>
+#TEMPLATE tvcc_active
+<a href="javascript:void(0)" onClick="chatStatus('%id',0)" title="Статус: ВКЛ. Щелкните, чтобы выключить."><img class="ic" src="img/i-on.png" alt="Вкл" /></a>
+#TEMPLATE tvcc_inactive
+<a href="javascript:void(0)" onClick="chatStatus('%id',1)" title="Статус: ВЫКЛ. Щелкните, чтобы включить."><img class="ic" src="img/i-off.png" alt="Выкл" /></a>
+#TEMPLATE tvcc_item
+<div class="chat" id="chat%id">
+%chat
+</div>
+#TEMPLATE tvcc_chat
+<table class="content" width="100%" id="chatNoEdit%id" %addstyle>
+	<tr>
+		<td width="5%">#%id</td>
+		<td width="5%" id="chatActive%id">%active</td>
+		<td width="5%"><img src="img/phone.png" class="ic" alt="Короткий номер" /><b>%sn</b><br/><b>%patshow</b></td>
+		<td width="70%">[<a href="javascript:void(0)" onClick="chatEdit('%id')">редактировать</a>][<a href="javascript:void(0)" onClick="chatClone('%id')">клонировать</a>] <b id="chatName%id">%name</b><br/>
+		Ответный SMS по умолчанию: <i>%reply_ok</i><br/>
+		Справочный SMS ответ: <i>%reply_help</i><br/>
+		Комната закрыта: <i>%reply_closed</i><br/>
+		</td>
+		<td width="15%" style="text-align:center">%login / %passwd<br/><br/><b style="color:red;font-size:150%">%num_chat</b><br/>Кол-во SMS</td>
+	</tr>
+</table>
+<form method="post" action="%SELF" id="chatClone%id" style="margin:0;padding:0;display:none" onSubmit="{chatCloneGo('%id');return false;}"><input type="hidden" name="do" value="tvchat-chat-clone" /><input type="hidden" name="id" value="%id" />
+	<table class="content" width="100%">
+		<tr>
+			<td>
+				<b>Склонировать комнату</b><br/>
+				Чтобы создать комнату под этим же номером, необходимо ввести шаблон принимаемых SMS.
+				Все сообщения, удовлетворяющие шаблону (PCRE), будут поступать в эту "комнату".<br/>
+				<i>Подсказка: если вы хотите получать все, что начинается с "water", нужно ввести "^water.*". Символ "^" означает начало строки. Последовательность ".*" означает "что угодно".</i>
+			</td>
+			<td>
+				<b>Шаблон:</b><br/>
+				<input id="chatClonePattern%id" type="text" name="pattern" value="" />
+			</td>
+			<td>
+				<input type="button" name="ok" value="Клонировать" onClick="chatCloneGo('%id')" />
+				<input type="button" name="cancel" value="Отмена" onClick="chatCloneCancel('%id')" />
+			</td>
+		</tr>
+	</table>
+</form>
+<form method="post" action="%SELF" id="chatEdit%id" style="margin:0;padding:0;display:none" onSubmit="{chatEditUpdate('%id');return false;}"><input type="hidden" name="do" value="tvchat-chat-update" /><input type="hidden" name="id" value="%id" />
+	<table class="content" width="100%">
+		<tr>
+			<td width="5%">#%id</td>
+			<td width="5%"><label><input type="checkbox" name="active" value="1" %actcheck /> Активный</label></td>
+			<td width="10%">Короткий&nbsp;номер:<br/><input type="text" name="sn" size="10" value="%sn" class="mob" /><br/>Шаблон SMS:<br><input type="text" name="pattern" size="10" value="%pattern" /><br/><small>оставьте пустым для комнаты по умолчанию</small></td>
+			<td width="50%">
+				Описание:<br/><input type="text" name="name" size="40" value="%name" /><br/>
+				Ответный SMS по умолчанию:<br/><textarea cols="60" rows="2" name="reply_ok">%reply_ok</textarea><br/>
+				Справочный SMS ответ:<br/><textarea cols="60" rows="2" name="reply_help">%reply_help</textarea><br/>
+				Ответ "комната закрыта":<br/><textarea cols="60" rows="2" name="reply_closed">%reply_closed</textarea><br/>
+			</td>
+			<td width="25%">Логин&nbsp;и&nbsp;пароль:<br/><input type="text" name="login" size="12" value="%login" /><input type="text" name="passwd" size="12" value="%passwd" /></td>
+		</tr>
+		
+		<tr>
+			<th colspan="5">
+				<input type="button" name="ok" value="Сохранить" onClick="chatEditUpdate('%id')" />
+				<input type="button" name="cancel" value="Отмена" onClick="chatEditCancel('%id')" />
+				[<a href="javascript:void(0)" onClick="chatDelete('%id')" style="color:red">удалить</a>]
+			</th>
+		</tr>
+	</table>
+</form>
+<br/>
+
+
+#TEMPLATE chat_manage
+<style type="text/css">
+
+	img.ic { border: none; vertical-align: middle; }
+	
+	div#Worksheet {
+		padding: 0.5em;
+		margin: 0;
+		background-color: #fff;
+		border: 2px solid #ccc;
+	}
+	
+	.inav {
+		margin: 0;
+		padding: 0.25em;
+		text-align: right;
+	}
+	
+	table.chat {
+		margin: 1em 0;
+		padding: 0;
+		border: none;
+		border-collapse: collapse;
+	}
+	
+	table.chat tr th {
+		background-color: #eee;
+		border-top: none;
+		border-right: none;
+		border-left: none;
+		border-bottom: 2px solid #999;
+		border-collapse: collapse;
+		margin: 0;
+		padding: 0.5em;
+		font-size: 8pt;
+	}
+	table.chat tr td {
+		border-top: none;
+		border-right: none;
+		border-left: none;
+		border-bottom: 1px solid #ccc;
+		border-collapse: collapse;
+		margin: 0;
+		padding: 0.25em;
+		font-size: 8pt;
+	}
+
+	.btn {
+		padding: 2px 0.5em;
+		background-color: #ccf;
+		border-right: 1px solid #669;
+		border-bottom: 1px solid #669;
+	}
+
+
+</style>
+<script type="text/javascript"><!--
+
+	$(document).ready(function() {	
+		showChat();
+	});
+
+	function showChat () {
+		$('#Worksheet').fadeOut('fast',function () {
+			$('#chatLastId').val(0);
+			$.post('%SELF', $('#chatShowForm').serialize(), function(data) {
+				$('#Worksheet').html(data);
+				$('#Worksheet').fadeIn('fast');
+				getNewMessages();
+			});
+		});
+		return false;
+	}
+	
+	function getNewMessages () {
+		var p = $('#chatPage').val();
+		if (p>0) { 
+			// Auto-refresh only at first page
+			return false;
+		}
+		$('#newMsg').html('Получаем новые сообщения...');
+		var lastMsgId = $('.msgid:first');
+		if (lastMsgId) {
+			var lastId = lastMsgId.text();
+			$('#chatLastId').val(lastId);
+		}
+			
+		$.post('%SELF', $('#chatShowForm').serialize(), function(data) {
+			$('#chatLastId').val(0);
+			var block = $(data);
+			var ids = block.find('.msgid');
+			var num = ids.length;
+			if (num) {
+				
+				$('#newMsg').html('новых сообщений: ' + num);
+				
+				var filled = $('.msgid').length;
+				
+				// Remove extra messages from page
+				if (filled + num > 50) {
+					var reduce = filled + num - 50;
+					for (var i=0;i<reduce;i++) {
+						$('.msgrow:last').remove();
+					}
+				}
+				
+				// Insert new block at top
+				$('#chatHeader').after(block);
+				$('.chatTotal').hide(0);
+			} else {
+				$('#newMsg').html('&nbsp;');
+			}
+		});
+		
+		setTimeout(getNewMessages, 15000);
+	}
+	
+	function pageNext () {
+		var p = $('#chatPage').val();
+		$('#chatPage').val(p+1);
+		showChat();
+		return false;
+	}
+	
+	function pageBack () {
+		var p = $('#chatPage').val();
+		if (p > 0) {
+			$('#chatPage').val(p-1);
+			showChat();
+		}
+		return false;
+	}
+	
+	function chatApprove ( id ) {
+		$.post('%SELF', {
+			'do' : 'tvchat-message-status',
+			'id' : id,
+			'status' : 'APPROVED'
+		}, function(data) {
+			$('#msg'+id).replaceWith(data);
+		});
+		return false;
+	}
+	
+	function chatReject ( id ) {
+		$.post('%SELF', {
+			'do' : 'tvchat-message-status',
+			'id' : id,
+			'status' : 'REJECTED'
+		}, function(data) {
+			$('#msg'+id).replaceWith(data);
+		});
+		return false;
+	}
+	
+	function chatBan ( id, jail ) {
+		if (jail == '') return false;
+		var msisdn = $('#msisdn'+id).text();
+		var msg = $('#body'+id).text();
+		if (confirm('Забанить абонента ['+msisdn+'] с сообщением ['+msg+'] на 1 '+jail+'?')) {
+			$.post('%SELF', {
+				'do' : 'tvchat-message-ban',
+				'id' : id,
+				'jail' : jail
+			}, function(data) {
+				showChat();
+			});
+		} else {
+			$('#ban'+id).val('');
+		}
+		return false;
+	}
+		
+//--></script>
+<form method="post" action="%SELF" name="chatShowForm" id="chatShowForm" onSubmit="{showChat();return false;}">
+	<input type="hidden" name="page" id="chatPage" value="0" />
+	<input type="hidden" name="do" value="tvchat-chat-list" />
+	<input type="hidden" name="last_id" id="chatLastId" value="0" />
+	<center>
+		<table border="0">
+			<tr>
+				<td><select name="serv"><option value="ALL" selected="1">Все чаты</option>%serv_options</select></td>
+				<td><select name="status">
+					<option value="ALL" selected="1">Все сообщения</option>
+					<option value="NEW">Новые сообщения</option>
+					<option value="APPROVED">Подтвержденные сообщения</option>
+					<option value="REJECTED">Отвергнутые сообщения</option>
+				</select></td>
+				<td><input type="button" name="ok" value="Показать" onClick="showChat()" /></td>
+			</tr>
+		</table>
+	</center>
+</form>
+<div id="Worksheet">&nbsp;</div>
+#TEMPLATE chat_list
+<div class="inav"><span class="chatTotal">Сообщения: %start-%end из %total </span>%back %more</div>
+<div id="newMsg">&nbsp;</div>
+<table id="chatTable" class="chat" width="100%">
+<tr id="chatHeader">
+	<th>Статус</th>
+	<th>Короткий номер</th>
+	<th>Телефон (MSISDN)</th>
+	<th>Получено</th>
+	<th>Сообщение</th>
+	<th>Утверждено</th>
+</tr>
+%list
+</table>
+<div class="inav"><span class="chatTotal">Сообщения: %start-%end из %total </span>%back %more</div>
+#TEMPLATE chat_row
+<tr class="msgrow" id="msg%id">
+	<td style="color:%color"><span class="msgid" style="display:none">%id</span>%status</td>
+	<td>%sn</td>
+	<td id="msisdn%id">%msisdn</td>
+	<td>%received</td>
+	<td id="body%id">%body</td>
+	<td><i>%editor_info</i>%func</td>
+</tr>
+#TEMPLATE chat_row_func
+<a href="javascript:void(0);" onClick="chatApprove('%id');" class="btn">подтвердить</a>&nbsp;<a href="javascript:void(0);" onClick="chatReject('%id');" class="btn">выбросить</a>&nbsp;<!-- Ban&nbsp;for&nbsp;<a href="javascript:void(0);" onClick="chatBan('%id','hour');" class="btn">1&nbsp;hour</a>&nbsp;<a href="javascript:void(0);" onClick="chatBan('%id','month');" class="btn">1&nbsp;month</a> --><select name="ban%id" id="ban%id" class="btn" onChange="chatBan('%id',$(this).val())"><option value="" selected="1">забанить на...</option><option value="hour">1 час</option><option value="day">1 день</option><option value="month">1 месяц</option></select>
+
+#TEMPLATE chat_banpage
+<style type="text/css">
+
+	img.ic { border: none; vertical-align: middle; }
+	
+	div#Worksheet {
+		padding: 0.5em;
+		margin: 0;
+		background-color: #fff;
+		border: 2px solid #ccc;
+	}
+	
+	.inav {
+		margin: 0;
+		padding: 0.25em;
+		text-align: right;
+	}
+	
+	table.chat {
+		margin: 1em 0;
+		padding: 0;
+		border: none;
+		border-collapse: collapse;
+	}
+	
+	table.chat tr th {
+		background-color: #eee;
+		border-top: none;
+		border-right: none;
+		border-left: none;
+		border-bottom: 2px solid #999;
+		border-collapse: collapse;
+		margin: 0;
+		padding: 0.5em;
+		font-size: 8pt;
+	}
+	table.chat tr td {
+		border-top: none;
+		border-right: none;
+		border-left: none;
+		border-bottom: 1px solid #ccc;
+		border-collapse: collapse;
+		margin: 0;
+		padding: 0.25em;
+		font-size: 8pt;
+	}
+
+	.btn {
+		padding: 2px 0.5em;
+		background-color: #ccf;
+		border-right: 1px solid #669;
+		border-bottom: 1px solid #669;
+	}
+
+
+</style>
+<script type="text/javascript"><!--
+
+	$(document).ready(function() {	
+		showBans();
+	});
+
+	function showBans () {
+		$('#Worksheet').fadeOut('fast',function () {
+			$.post('%SELF', $('#banShowForm').serialize(), function(data) {
+				$('#Worksheet').html(data);
+				$('#Worksheet').fadeIn('fast');
+			});
+		});
+		return false;
+	}
+	
+	function pageNext () {
+		var p = $('#banPage').val();
+		$('#banPage').val(p+1);
+		showBans();
+		return false;
+	}
+	
+	function pageBack () {
+		var p = $('#banPage').val();
+		if (p > 0) {
+			$('#banPage').val(p-1);
+			showBans();
+		}
+		return false;
+	}
+	
+	function banClear ( id ) {
+		$.post('%SELF', {
+			'do' : 'tvchat-ban-clear',
+			'id' : id
+		}, function(data) {
+			showBans();
+		});
+		return false;
+	}
+		
+//--></script>
+<form method="post" action="%SELF" name="banShowForm" id="banShowForm" onSubmit="{showBans();return false;}">
+	<input type="hidden" name="page" id="banPage" value="0" />
+	<input type="hidden" name="do" value="tvchat-ban-list" />
+	<center>
+		<table border="0">
+			<tr>
+				<td><select name="serv"><option value="ALL" selected="1">Все комнаты</option>%serv_options</select></td>
+				<td><input type="button" name="ok" value="Показать" onClick="showBans()" /></td>
+			</tr>
+		</table>
+	</center>
+</form>
+<div id="Worksheet">&nbsp;</div>
+#TEMPLATE chat_banlist
+<div class="inav">Баны: %start-%end из %total %back %more</div>
+<table id="banTable" class="chat" width="100%">
+<tr id="banHeader">
+	<th>Короткий номер</th>
+	<th>Телефон (MSISDN)</th>
+	<th>Забанен</th>
+	<th>До</th>
+	<th>Сообщение</th>
+	<th>Отменить бан</th>
+</tr>
+%list
+</table>
+<div class="inav">Баны %start-%end из %total %back %more</div>
+#TEMPLATE chat_banrow
+<tr style="%style">
+	<td>%sn</td>
+	<td>%msisdn</td>
+	<td>%since</td>
+	<td>%till</td>
+	<td>%note</td>
+	<td><a href="javascript:void(0);" onClick="banClear('%id');" class="btn">очистить&nbsp;бан</a></td>
+</tr>

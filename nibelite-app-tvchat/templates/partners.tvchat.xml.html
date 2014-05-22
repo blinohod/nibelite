@@ -1,0 +1,37 @@
+#TRANSLATE tvchat_title SMS-ТВ Чат
+#TEMPLATE chat_list_xml
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+	<title>%name</title>
+	<description>SMS TV Chat %name on %sn</description>
+	<link>http://localhost/</link>
+	<ttl>600</ttl>
+		%messages
+</channel>
+</rss>
+
+#TEMPLATE chat_list_item_xml
+<item>
+	<title>%msisdn</title>
+	<description>%body</description>
+	<link></link>
+	<guid>%id</guid>
+	<pubDate>%time_full</pubDate>
+</item>
+
+#TEMPLATE login_error
+<p style="color:red;">Ошибка входа в систему! Проверьте имя пользователя и пароль.</p>
+
+#TEMPLATE login
+<h2>Авторизация в партнерском интерфейсе</h2>
+%login_msg
+<blockquote>
+	<form method="post" action="%SELF" name="login" style="text-align:center;">
+		<p>
+			Пользователь: <input type="text" size="10" name="l" value='' />
+			Пароль: <input type="password" size="10" name="p" value='' />
+			<input type="submit" name="ok" value="Войти в систему" />
+		</p>
+	</form>
+</blockquote>

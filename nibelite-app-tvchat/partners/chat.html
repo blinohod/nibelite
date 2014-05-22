@@ -1,0 +1,100 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<link rel="stylesheet" type="text/css" href="chat.css" media="all" />
+	<script type="text/javascript" src="/jquery/jquery.js"></script>
+	<script type="text/javascript" src="chat.js"></script>
+	<title>SMS TV Chat</title>
+</head>
+<body>
+	<div id="wrapper">
+		<div id="header">
+			<div id="logo">
+				<h1>SMS TV Chat</h1>
+			</div>
+			<div id="login" class="topright">
+				<form id="loginForm">
+					<input type="hidden" name="a" value="login" />
+					<span>Логин:&nbsp;<input type="text" name="login" value="" /></span>
+					<span>Пароль:&nbsp;<input type="password" name="pass" value="" /></span>
+					<span><button id="loginButton">Войти</button></span>
+				</form>
+			</div>
+			<div id="logged" class="topright" style="display:none">
+				<span id="loginName"></span>
+				<span><button id="logoutButton">Выйти</button></span>
+			</div>
+		</div>
+
+		<div id="content">
+			<div id="contentLogged">
+				<table width="100%" border="0" cellpadding="0" cellspacing="0">
+					<tr>
+						<td id="panel" valign="top">
+							<table id="chatlist" class="info" width="100%" border="0" cellspacing="1">
+								<thead>
+									<tr><th>Комната</th><th>SMS</th></tr>
+								</thead>
+								<tbody>
+									<tr><td align="left" class="room-left"><span class="room-sn">104456</span><br/><span class="room-title">В лесу родилась ёлочка</span></td><td align="right" class="room-right"><span class="room-today" title="Сообщений сегодня">35</span><br/><span class="room-total" title="Сообщений всего">1340</span></td></tr>
+									<tr><td align="left" class="room-left"><span class="room-sn">104456</span><br/><span class="room-title">В лесу родилась ёлочка</span></td><td align="right" class="room-right"><span class="room-today" title="Сообщений сегодня">35</span><br/><span class="room-total" title="Сообщений всего">1340</span></td></tr>
+									<tr><td align="left" class="room-left"><span class="room-sn">104456</span><br/><span class="room-title">В лесу родилась ёлочка</span></td><td align="right" class="room-right"><span class="room-today" title="Сообщений сегодня">35</span><br/><span class="room-total" title="Сообщений всего">1340</span></td></tr>
+								</tbody>
+							</table>
+						</td>
+						<td id="workspace" valign="top">
+							<table id="roomtitle" class="info" width="100%" border="0" cellspacing="1">
+								<thead>
+									<tr><th colspan="2">Комната &laquo;<span id="currentRoomTitle">В лесу родилась ёлочка</span>&raquo; (<span id="currentRoomSn">104456</span>) [ <a href="#">XML/RSS</a> ]</th></tr>
+								</thead>
+								<tbody>
+									<tr><td width="90%">Сообщений за сегодня:</td><td><span id="currentRoomToday">35</span></td></tr>
+									<tr><td width="90%">Сообщений за 30 дней:</td><td><span id="currentRoomMonth">1340</span></td></tr>
+								</tbody>
+							</table>
+							<table id="roomnav" class="info" width="100%" border="0" cellspacing="1">
+								<tr>
+									<td><select id="autoRefresh"><option value="0">Не обновлять</option><option value="10">Обновлять каждые 10с</option><option value="30" selected="1">Обновлять каждые 30с</option><option value="60">Обновлять каждую минуту</option><option value="300">Обновлять каждые 5 мин</option><option value="900">Обновлять каждые 15 мин</option><option value="1800">Обновлять каждые полчаса</option></select></td>
+									<td width="100%"><span id="currentPageCount">Сообщения <span id="currentPageStart">1</span>-<span id="currentPageEnd">25</span> из <span id="currentRoomTotal">1340</span></span><span id="currentPageEmpty" style="display:none">Сообщений нет</span></td>
+									<td>
+										<button id="currentPagePrev" disabled="1">назад</button>
+									</td>
+									<td>
+										<button id="currentPageNext">дальше</button>
+									</td>
+								</tr>
+							</table>
+							<table id="roomchat" width="100%">
+								<thead>
+									<th>Время</th>
+									<th>Статус</th>
+									<th>Абонент</th>
+									<th width="100%">Сообщение</th>
+								</thead>
+								<tbody>
+								<tr>
+									<td style="white-space:nowrap"><small>2012-01-10 03:44:55</small></td>
+									<td><small>APPROVED</small></td>
+									<td><small>380687087906</small></td>
+									<td class="chat-approved">Зимой и летом стройная, ко-ко, корококо</td>
+								</tr>
+								</tbody>
+							</table>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div id="contentNotLogged" style="display:none">
+				<h3><center>Войдите в систему, чтобы увидеть список комнат</center></h3>
+			</div>
+		</div>
+
+		<div id="footer">
+			<div class="topright">
+				<span>&copy; 2007-2011 <a href="#" title="Net Style Ltd.">Net Style Ltd.</a></span>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

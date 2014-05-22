@@ -1,0 +1,333 @@
+#TEMPLATE tvchat_messages
+<style type="text/css">
+	div#left { 
+		width:57%;
+		float:left;
+		overflow:hidden;
+		margin:0;
+		padding:0;
+		position:relative; 
+	}
+	div#user { 
+		padding:1em 0.5em;
+		text-align:center;
+		font-weight:bold; 
+		background:url(/img/grad.jpg) top left repeat-x; 
+	}
+	form#filterForm { border:1px solid #ccc;padding:0.25em;margin:0 0 2px 0;text-align:center; }
+	div#messages { margin:0;padding:0;overflow-x:hidden;overflow-y:scroll; }
+	div#right { width:40%;float:right;overflow:auto;border:1px solid #ccc;margin:0;padding:4px; }
+
+	img.ic { border: none; vertical-align: middle; }
+	.msgListItem { 
+		padding: 0.25em; 
+		background:url(/img/drag.jpg) bottom left repeat-x; 
+		cursor: pointer;
+		margin: 1px;
+		border: 2px solid #ccc;
+	}
+	.msgListItem ul {
+		padding: 0;
+		margin: 0 0 0 20px;
+		list-style: none;
+	}
+	.msgListItem ul li {
+		padding: 0;
+		margin: 0;
+	}
+	.msgListNav {
+		margin:0;
+		padding:0.5em;
+		text-align:center;
+		vertical-align:middle;
+		overflow:visible;
+	}
+	
+</style>
+<script type="text/javascript"><!--
+
+	var pattern;
+
+	var myArray = new Array();
+	
+	var coding = 0;
+
+	$(document).ready(function() {
+		resizeColumns();
+		$(window).resize(resizeColumns);
+		periodicReload();
+
+	});
+	
+	function initEditForm() {
+		if($('input:radio[name=coding]:checked').length) {
+			updateMsgBody();
+			
+			$("input:radio[name=coding]").click(function(){
+				updateMsgBody();
+			});
+			$("#msgBody").keyup(updateMsgBody);
+		}
+	}
+	
+	function updateMsgBody() {
+		var mb = $('#msgBody');
+	}		
+	
+	function resizeColumns() {
+		$('#main').height($(window).height() - ($('body').height() - $('#main').height() + 18));
+		$('#left').height($('#main').height());
+		var pos = $('#messages').position();
+		$('#messages').height($('#left').height() - pos.top);
+		$('#right').height($('#main').height() - 2*(4+1));
+	}
+	
+	function periodicReload() {
+		loadMessages();
+		window.setTimeout(periodicReload,10000);
+	}
+
+	function loadMessages() {
+		$('#messages').fadeOut('fast', function() {
+			$.post('%SELF', $('#filterForm').serialize(), function(data) {
+				$('#messages').html(data);
+				$('#messages').fadeIn();
+				
+				$('#msg'+$('#selectedMsg').val()).css("border-color", "#009");
+			});
+		});
+		return false;
+	}
+	
+	function pageBack() {
+		p = $('#filterPage').val();
+		if( p > 0 ) {
+			$('#filterPage').val(p-1);
+			loadMessages();
+		}
+		return false;
+	}
+	
+	function pageForward() {
+		p = $('#filterPage').val();
+		$('#filterPage').val(p+1);
+		loadMessages();
+		return false;
+	}
+	
+	function newMessage() {
+		$.post('%SELF', {
+			'do': 'tvchat-msgnew'
+		}, function(data) {
+			loadMessages();
+			var re = /^\{/;
+			if(re.test(data)) {
+				try {
+					var o = $.parseJSON(data);
+					selectMessage(o.id);
+				} catch(e) {
+					alert("JSON read error");
+				}
+			} else {
+				alert("Error: "+data);
+			}
+		});
+		return false;
+	}
+	
+	
+	
+	function msgReject( id ) {
+		if( confirm("Are you sure to reject the message?") ) {
+			$.post('%SELF', {
+				'do': 'tvchat-msgcancel',
+				'id': id
+			}, function(data) {
+				loadMessages();
+				var re = /^\{/;
+				if(re.test(data)) {
+					try {
+						var o = $.parseJSON(data);
+						selectMessage(o.id);
+					} catch(e) {
+						alert("JSON read error");
+					}
+				} else {
+					alert("Error: "+data);
+				}
+			});
+		}
+		return false;
+	}
+
+	
+	function paintMessage() {
+		$('.msgListItem').css("border-color", "#ccc");
+		$('#msg'+$('#selectedMsg').val()).css("border-color", "#009");
+	}
+	
+	function selectMessage( id ) {
+		$('#selectedMsg').val(id);
+		paintMessage();
+		
+		$.post('%SELF', {
+			'do': 'tvchat-msgedit',
+			'id': id
+		}, function(data) {
+			$('#right').fadeOut('fast',function() {
+				$('#right').html(data);
+				$('#right').fadeIn('fast',function() {
+					initEditForm();
+				});
+			});
+		});
+		
+		return false;
+	}
+
+	function msgUpdate( id, send ) {
+		if( send == 'reject' ) {
+			$('#msgEditStatus').val('REJECTED');
+		}
+		if( send == 'approve' ) {
+			$('#msgEditStatus').val('APPROVED');
+		}
+		$.post('%SELF', $('#msgEditForm').serialize(), function(data) {
+			loadMessages();
+			var re = /^\{/;
+			if(re.test(data)) {
+				try {
+					var o = $.parseJSON(data);
+					selectMessage(o.id);
+				} catch(e) {
+					alert("JSON read error");
+				}
+			} else {
+				alert("Error: "+data);
+			}
+		});
+		return false;
+	}
+
+
+// --></script>
+
+<div id="left">
+	<div id="user">
+		<img src="/img/i-user.png" class="ic" alt="%user" />%user<br/>
+	</div>
+	<form  id="filterForm">
+		<select name="status">
+			<option value="" selected="1">---</option>
+			<option value="NEW">New</option>
+			<option value="APPROVED">Approved</option>
+			<option value="REJECTED">Rejected</option>
+		</select>
+		<a href="javascript:void()" title="Обновить список" onClick="loadMessages();"><img src="/img/i-reload.png" class="ic" alt="reload" /></a>
+		<input type="hidden" name="do" value="tvchat-msglist" />
+		<input type="hidden" name="page" id="filterPage" value="0" />
+		<input type="hidden" name="sel" id="selectedMsg" value="0" />
+	</form>
+	<div id="messages">&nbsp;</div>
+</div>
+<div id="right">
+&nbsp;
+</div>
+
+#TEMPLATE msg_status_new
+<img src="/img/i-m-new.png" alt="NEW" title="NEW" class="ic" />
+#TEMPLATE msg_status_approved
+<img src="/img/i-m-queued.png" alt="Approved" title="Approved" class="ic" />
+#TEMPLATE msg_status_rejected
+<img src="/img/i-m-canceled.png" alt="Rejected" title="Rejected" class="ic" />
+#TEMPLATE msg_list_item
+<div class="msgListItem" id="msg%id" onClick="selectMessage('%id');">
+	%status_img <b>%received</b> from <b>%msisdn</b><br/>
+	<ul>
+		<li>%text</li>
+	</ul>
+</div>
+#TEMPLATE msg_li_topic
+<li><small>- %topic</small></li>
+
+#TEMPLATE msg_list_empty
+<center style="margin:5em 0">empty queue</center>
+
+#TEMPLATE msg_list_back
+<div style="width:22px;float:left;text-align:left"><a href="javascript:void()" onClick="pageBack();" title="previous"><img src="/img/i-prev.png" alt="previous" class="ic" /></a></div>
+
+#TEMPLATE msg_list_forward
+<div style="width:22px;float:right;text-align:right"><a href="javascript:void()" onClick="pageForward();" title="next"><img src="/img/i-next.png" alt="next" class="ic" /></a></div>
+
+#TEMPLATE msg_list_nav
+<div class="msgListNav">
+%way_back
+%way_forward
+%start-%end из %total</div>
+
+#TEMPLATE msg_edittop_new
+<div style="padding:0.5em;margin:0 0 0.5em 0;border-bottom:1px solid #ccc">
+	New message awaiting for your approval.
+</div>
+
+#TEMPLATE msg_edittop_approved
+<div style="padding:0.5em;margin:0 0 0.5em 0;border-bottom:1px solid #ccc">
+This message was approved for TV Chat export.<br/>
+</div>
+
+#TEMPLATE msg_edittop_rejected
+<div style="padding:0.5em;margin:0 0 0.5em 0;border-bottom:1px solid #ccc">
+Message was rejected.</div>
+
+#TEMPLATE msg_edittop_unknown
+<div style="padding:0.5em;margin:0 0 0.5em 0;border-bottom:1px solid #ccc">
+	This message status is UNKNOWN.<br />
+	Please contact system engineer if you see this message.
+</div>
+
+#TEMPLATE msg_edit_show
+<table class="content" width="100%">
+	<tr><th colspan="2">Technical information</th></tr>
+	
+	<tr><td>Id</td><td>%id / %msg_id</td></tr>
+	<tr><td>Status</td><td>%status</td></tr>
+	<tr><td>MSISDN</td><td>%msisdn</td></tr>
+	<tr><td>Short code</td><td>%sn</td></tr>
+	<tr><td>Received</td><td>%received</td></tr>
+	<tr><td>Approvement</td><td>
+		<img src="/img/i-user.png" alt="by user" class="ic" /> %approved <b>%editor_info</b>
+	</td></tr>
+	
+	<tr><th colspan="2">Message text</th></tr>
+	
+	<tr><td>Text</td><td>%body</td></tr>	
+</table>
+
+#TEMPLATE msg_edit_form
+<form action="%SELF" method="post" id="msgEditForm">
+<table class="content" width="100%">
+	<tr><th colspan="2">Technical information</th></tr>
+	
+	<tr><td>Id</td><td>%id / %msg_id</td></tr>
+	<tr><td>Status</td><td>%web_status</td></tr>
+	<tr><td>MSISDN</td><td>%msisdn</td></tr>
+	<tr><td>Short code</td><td>%sn</td></tr>
+	<tr><td>Received</td><td>%received</td></tr>
+	<tr><td>Approvement</td><td>
+			<img src="/img/i-user.png" alt="by user" class="ic" /><b> %approved <b>%editor_info</b>
+	</td></tr>
+	
+	<tr><th colspan="2">Message text</th></tr>
+	
+	<tr><td>Text<br/></td><td><textarea rows="7" cols="40" style="width:95%" name="msg_body" id="msgBody">%body</textarea></td></tr>	
+	
+	<tr><th colspan="2">
+		<input type="button" name="save" value="Reject" onClick="msgUpdate('%id','reject');" />
+		<input type="button" name="send" value="Approve" onClick="msgUpdate('%id','approve');" />
+	</th></tr>
+</table>
+<input type="hidden" name="do" value="tvchat-msgupdate" />
+<input type="hidden" name="id" value="%id" />
+<input type="hidden" name="status" value="%status" id="msgEditStatus" />
+<input type="hidden" name="test" value="0" id="msgTest" />
+</form>
